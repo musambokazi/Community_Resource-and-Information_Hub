@@ -1,0 +1,415 @@
+:root {
+    --bg-color: #fdfbf7; /* Warm off-white */
+    --text-main: #2d3748;
+    --text-muted: #718096;
+    --card-bg: rgba(255, 255, 255, 0.6);
+    --card-border: rgba(255, 255, 255, 0.8);
+    
+    --primary: #fb923c; /* warm orange/peach */
+    --primary-hover: #ea580c;
+    --secondary: #3b82f6; /* friendly blue */
+    --danger: #ef4444; /* soft red */
+    
+    --shadow-soft: 0 20px 40px -15px rgba(0,0,0,0.05);
+    --blob-1: #ffdca8;
+    --blob-2: #c4def6;
+}
+
+body.dark-mode {
+    --bg-color: #0f172a; /* Deep blue-gray */
+    --text-main: #f8fafc;
+    --text-muted: #94a3b8;
+    --card-bg: rgba(30, 41, 59, 0.6);
+    --card-border: rgba(255, 255, 255, 0.05);
+    
+    --primary: #f97316;
+    --primary-hover: #c2410c;
+    --blob-1: #4c1d95;
+    --blob-2: #0e7490;
+    --shadow-soft: 0 20px 40px -15px rgba(0,0,0,0.5);
+}
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+    font-family: 'Outfit', sans-serif;
+}
+
+body {
+    background-color: var(--bg-color);
+    color: var(--text-main);
+    min-height: 100vh;
+    position: relative;
+    overflow-x: hidden;
+    transition: background-color 0.5s ease, color 0.5s ease;
+}
+
+/* Background animated blobs for a lively, human feel */
+.blob-bg {
+    position: fixed;
+    border-radius: 50%;
+    filter: blur(80px);
+    z-index: -1;
+    opacity: 0.7;
+    animation: float 12s infinite alternate cubic-bezier(0.4, 0, 0.2, 1);
+    transition: background-color 0.8s ease;
+}
+
+.blob-bg:nth-child(1) {
+    width: 600px;
+    height: 600px;
+    background: var(--blob-1);
+    top: -150px;
+    left: -100px;
+}
+
+.blob-bg.blob-2 {
+    width: 500px;
+    height: 500px;
+    background: var(--blob-2);
+    bottom: -100px;
+    right: -100px;
+    animation-delay: -6s;
+    animation-duration: 15s;
+}
+
+@keyframes float {
+    0% { transform: translate(0, 0) scale(1) rotate(0deg); }
+    100% { transform: translate(50px, 80px) scale(1.1) rotate(15deg); }
+}
+
+/* Navigation */
+.navbar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 1.5rem 5%;
+    max-width: 1200px;
+    margin: 0 auto;
+}
+
+.nav-brand {
+    font-size: 1.5rem;
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    color: var(--primary);
+}
+.nav-brand i { border-radius: 8px; font-size: 1.8rem; }
+
+.btn-icon {
+    background: var(--card-bg);
+    border: 1px solid var(--card-border);
+    backdrop-filter: blur(8px);
+    color: var(--text-main);
+    font-size: 1.25rem;
+    cursor: pointer;
+    width: 45px;
+    height: 45px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.3s;
+    box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05);
+}
+.btn-icon:hover {
+    transform: scale(1.1) rotate(10deg);
+    box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1);
+}
+
+/* Hero Section */
+.hero {
+    text-align: center;
+    padding: 5rem 1.5rem 4rem;
+    max-width: 800px;
+    margin: 0 auto;
+}
+
+.hero h1 {
+    font-size: 4rem;
+    font-weight: 700;
+    margin-bottom: 1.25rem;
+    line-height: 1.1;
+    letter-spacing: -0.03em;
+}
+
+.hero .subtitle {
+    font-size: 1.25rem;
+    color: var(--text-muted);
+    margin-bottom: 3rem;
+    max-width: 600px;
+    margin-left: auto;
+    margin-right: auto;
+    font-weight: 400;
+}
+
+.search-wrapper {
+    position: relative;
+    max-width: 650px;
+    margin: 0 auto;
+}
+
+.search-container {
+    display: flex;
+    align-items: center;
+    background: var(--card-bg);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    border: 1px solid var(--card-border);
+    padding: 0.5rem 0.5rem 0.5rem 1.5rem;
+    border-radius: 99px;
+    box-shadow: var(--shadow-soft);
+    transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.3s;
+}
+
+.search-container:focus-within {
+    transform: translateY(-4px) scale(1.01);
+    box-shadow: 0 25px 50px -12px rgba(0,0,0,0.15);
+    background: var(--bg-color); /* slightly more solid on focus */
+}
+
+.search-icon {
+    font-size: 1.25rem;
+    color: var(--primary);
+}
+
+.search-container input {
+    flex: 1;
+    background: transparent;
+    border: none;
+    padding: 1rem 1rem;
+    font-size: 1.1rem;
+    color: var(--text-main);
+    outline: none;
+    font-family: inherit;
+}
+.search-container input::placeholder {
+    color: var(--text-muted);
+    font-weight: 300;
+}
+
+.btn-primary {
+    background: var(--primary);
+    color: white;
+    border: none;
+    padding: 1rem 2rem;
+    border-radius: 99px;
+    font-size: 1.05rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 0.3s, transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+.btn-primary:hover {
+    background: var(--primary-hover);
+    transform: scale(1.05);
+}
+
+/* Grid Layout */
+.resource-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 2rem;
+    padding: 2rem 5%;
+    max-width: 1200px;
+    margin: 0 auto 5rem;
+}
+
+/* Cards (Glassmorphism + soft interaction) */
+.card {
+    background: var(--card-bg);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    border: 1px solid var(--card-border);
+    padding: 2.25rem;
+    border-radius: 28px;
+    box-shadow: var(--shadow-soft);
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    transition: transform 0.4s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.4s ease, border-color 0.4s ease;
+}
+
+.card:hover {
+    transform: translateY(-8px);
+    box-shadow: 0 30px 60px -15px rgba(0,0,0,0.1);
+    border-color: rgba(255, 255, 255, 1);
+}
+body.dark-mode .card:hover { border-color: rgba(255, 255, 255, 0.15); }
+
+.card-icon {
+    width: 64px;
+    height: 64px;
+    border-radius: 20px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 2rem;
+    margin-bottom: 1.5rem;
+    transition: transform 0.3s ease;
+}
+.card:hover .card-icon {
+    transform: scale(1.1) rotate(-5deg);
+}
+
+.health { background: rgba(59, 130, 246, 0.12); color: #3b82f6; }
+.gov { background: rgba(16, 185, 129, 0.12); color: #10b981; }
+.transport { background: rgba(245, 158, 11, 0.12); color: #f59e0b; }
+.emergency { background: rgba(239, 68, 68, 0.12); color: #ef4444; }
+
+.card h2 {
+    font-size: 1.5rem;
+    margin-bottom: 0.75rem;
+    font-weight: 600;
+    color: var(--text-main);
+}
+
+.card p {
+    color: var(--text-muted);
+    line-height: 1.6;
+    margin-bottom: 2rem;
+    flex-grow: 1;
+    font-size: 1.05rem;
+}
+
+.btn-secondary, .btn-danger {
+    background: transparent;
+    border: none;
+    font-size: 1.05rem;
+    font-weight: 600;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0;
+    transition: gap 0.3s cubic-bezier(0.34, 1.56, 0.64, 1), color 0.3s ease;
+}
+
+.btn-secondary {
+    color: var(--text-main);
+}
+.card:hover .btn-secondary {
+    color: var(--secondary);
+}
+.btn-secondary:hover {
+    gap: 0.8rem;
+}
+
+.btn-danger {
+    color: var(--danger);
+    background: rgba(239, 68, 68, 0.1);
+    padding: 0.75rem 1.25rem;
+    border-radius: 14px;
+    width: 100%;
+    justify-content: center;
+}
+.btn-danger:hover {
+    background: var(--danger);
+    color: white;
+}
+.card-emergency {
+    position: relative;
+    overflow: hidden;
+}
+
+/* Warning stripe on emergency card */
+.card-emergency::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 6px;
+    background: linear-gradient(90deg, #ef4444, #f87171);
+}
+
+/* Responsiveness */
+@media (max-width: 768px) {
+    .hero h1 {
+        font-size: 2.8rem;
+    }
+    .hero {
+        padding: 4rem 1rem 2rem;
+    }
+    .search-container {
+        flex-direction: column;
+        border-radius: 24px;
+        padding: 1rem;
+    }
+    .search-icon {
+        display: none;
+    }
+    .search-container input {
+        width: 100%;
+        text-align: center;
+        padding: 1rem;
+    }
+    .btn-primary {
+        width: 100%;
+    }
+}
+
+/* ADD THIS to the bottom of style.css */
+.filter-bar button {
+    background: var(--card-bg); /* Uses your existing glassmorphism background */
+    backdrop-filter: blur(8px); /* Adds the soft blur effect */
+    transition: all 0.3s ease; /* Makes the hover effect smooth */
+    cursor: pointer;
+}
+
+.filter-bar button:hover {
+    background: var(--primary); /* Changes to orange on hover */
+    color: white; /* Changes text to white for contrast */
+}
+
+/* Make the Add Service form look like your Hero Search bar */
+.admin-form {
+    display: flex;
+    gap: 10px;
+    background: var(--card-bg);
+    padding: 1rem;
+    border-radius: 99px;
+    border: 1px solid var(--card-border);
+    backdrop-filter: blur(16px);
+    max-width: 800px;
+    margin: 2rem auto;
+}
+
+.admin-form input {
+    flex: 1;
+    background: transparent;
+    border: none;
+    padding: 0.5rem 1rem;
+    color: var(--text-main);
+    outline: none;
+}
+
+.card-actions a {
+    font-weight: 600;
+    font-size: 0.9rem;
+    transition: transform 0.2s ease;
+}
+
+.card-actions a:hover {
+    transform: scale(1.05);
+}
+
+/* Ensure the card pushes content to the top so buttons stay at the bottom */
+.card {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+}
+
+/* Keeps images consistent and adds a hover zoom */
+.card-img-wrapper img:hover {
+    transform: scale(1.1); /* Zooms in slightly when you hover */
+}
+
+/* Ensure the card has enough room for the image and text */
+.card {
+    display: flex;
+    flex-direction: column;
+    padding: 1.5rem;
+    min-height: 420px;
+}
