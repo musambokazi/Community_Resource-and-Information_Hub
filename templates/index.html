@@ -25,6 +25,14 @@
                 <button id="search-btn" class="btn-primary">Search</button>
             </div>
         </div>
+ <div class="filter-controls" style="margin-bottom: 20px; display: flex; gap: 10px; flex-wrap: wrap;">
+    <button class="filter-btn active" onclick="filterSelection('all')">All</button>
+    <button class="filter-btn" onclick="filterSelection('hospital')">Health</button>
+    <button class="filter-btn" onclick="filterSelection('transport')">Transport</button>
+    <button class="filter-btn" onclick="filterSelection('police')">Emergency</button>
+    <button class="filter-btn" onclick="filterSelection('library')">Education</button>
+</div>
+        
     </header>
 
     <main class="resource-grid">
@@ -40,14 +48,8 @@
         <h2>{{ resource.title }}</h2>
         <p>{{ resource.desc }}</p>
         
-        <div class="card-actions" style="display: flex; gap: 10px; width: 100%; margin-top: auto;">
-            <a href="tel:{{ resource.phone }}" class="btn-danger" style="text-decoration:none; flex:1; text-align:center; padding: 10px; border-radius: 12px;">Call</a>
-            <a href="https://www.google.com/maps/search/?api=1&query={{ resource.title|replace(' ', '+') }}&query_place_id={{ resource.lat }},{{ resource.lon }}" 
-               target="_blank" 
-               class="btn-secondary" 
-               style="text-decoration:none; flex:1; text-align:center; padding: 10px; border-radius: 12px;">
-               Route
-            </a>
+        <a href="https://www.google.com/maps/search/?api=1&query={{ resource.title|replace(' ', '+') }}&query_place_id={{ resource.lat }},{{ resource.lon }}" 
+   target="_blank" class="btn-secondary">Route</a>
         </div>
     </article>
     {% endfor %}

@@ -128,3 +128,14 @@ function findNearby() {
         enableHighAccuracy: true // This forces the GPS to be precise
     });
 }
+
+function filterSelection(c) {
+    var x = document.getElementsByClassName("card");
+    if (c == "all") c = "";
+    for (var i = 0; i < x.length; i++) {
+        x[i].style.display = "none"; // Hide all
+        if (x[i].className.indexOf(c) > -1) {
+            x[i].style.display = "flex"; // Show matching
+        }
+    }
+}

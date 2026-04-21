@@ -3,7 +3,7 @@ import sqlite3 # Database tool
 import requests
 
 app = Flask(__name__)
-
+API_KEY = "AIzaSyAPNekUGW1nFy1YC5ohKRcKFmblVl15-is"
 def get_db_connection():
     conn = sqlite3.connect('database.db') # Connects to our database file
     conn.row_factory = sqlite3.Row # Lets us access columns by name
@@ -11,29 +11,42 @@ def get_db_connection():
 
 @app.route('/')
 def home():
-    lat = request.args.get('lat', '-26.2500') 
+    lat = request.args.get('lat', '-26.2500')
     lon = request.args.get('lon', '28.4333')
     
-    # We define the categories and their matching images
-    categories = [
-        {"cat": "police", "img": "https://images.unsplash.com/photo-1596753101905-54318c64dca3?auto=format&fit=crop&w=400"},
-        {"cat": "hospital", "img": "https://images.unsplash.com/photo-1519494026892-80bbd2d6fd0d?auto=format&fit=crop&w=400"},
-        {"cat": "library", "img": "https://images.unsplash.com/photo-1521587760476-6c12a4b040da?auto=format&fit=crop&w=400"},
-        {"cat": "taxi_stand", "img": "https://images.unsplash.com/photo-1544620347-c4fd4a3d5957?auto=format&fit=crop&w=400"}
+    # These are the "types" Google understands
+    search_types = [
+        {'type': 'police', 'filter': 'police'},
+        {'type': 'hospital', 'filter': 'hospital'},
+        {'type': 'library', 'filter': 'library'},
+        {'type': 'taxi_stand', 'filter': 'transport'} # Mapping taxi to your 'transport' button
     ]
     
-    live_items = []
-    for item in categories:
-        name = "Local Taxi Rank" if item['cat'] == 'taxi_stand' else f"Nearest {item['cat'].title()}"
-        live_items.append({
-            "title": name,
-            "category": item['cat'],
-            "image": item['img'], # This holds the picture URL
-            "desc": "Found near your current location.",
-            "lat": lat, "lon": lon, "phone": "0115550000"
-        })
+    all_results = []
     
-    return render_template('index.html', items=live_items)
+    for item in search_types:
+        # We ask Google for everything within 5km
+        url = f"https://maps.googleapis.com/maps/api/place/nearbysearch/json?location={lat},{lon}&radius=5000&type={item['type']}&key={API_KEY}"
+        response = requests.get(url).json()
+
+        if "results" in response:
+            # We loop through EVERY result Google found, not just the first one
+            for place in response["results"]:
+                photo_ref = place.get('photos', [{}])[0].get('photo_reference')
+                
+                # Get the real photo or a placeholder if Google doesn't have one
+                img_url = f"https://maps.googleapis.com/maps/api/place/photo?maxwidth=400&photoreference={photo_ref}&key={API_KEY}" if photo_ref else "https://via.placeholder.com/400"
+
+                all_results.append({
+                    "title": place.get('name'),
+                    "category": item['filter'], # This matches your CSS/JS filters
+                    "image": img_url,
+                    "desc": place.get('vicinity', 'Nearby service'),
+                    "lat": place['geometry']['location']['lat'],
+                    "lon": place['geometry']['location']['lng']
+                })
+
+    return render_template('index.html', items=all_results)
 @app.route('/add', methods=['POST'])
 def add_resource():
 
