@@ -32,8 +32,13 @@ function filterSelection(c) {
     }
 }
 
-// Attach the location finder to your Search button
-document.getElementById('search-btn').addEventListener('click', findNearby);
+// Handle Enter key on search input
+document.getElementById('search-input').addEventListener('keydown', function(event) {
+    if (event.key === 'Enter') {
+        event.preventDefault(); // Prevent form submission if it were in a form
+        searchSpecificPlace();
+    }
+});
 
 function searchSpecificPlace() {
     const query = document.getElementById('search-input').value;
@@ -46,9 +51,6 @@ function searchSpecificPlace() {
         });
     }
 }
-
-// Hook it up to the existing search button
-document.getElementById('search-btn').addEventListener('click', searchSpecificPlace);
 
 const toggleBtn = document.getElementById('theme-toggle');
 const themeIcon = toggleBtn.querySelector('i');
@@ -90,3 +92,28 @@ window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', e =
     }
 });
 
+// Auto-scroll to results OR trigger initial location OR handle refresh
+window.addEventListener('DOMContentLoaded', () => {
+    const urlParams = new URLSearchParams(window.location.search);
+    const isReload = performance.getEntriesByType('navigation')[0].type === 'reload';
+
+    // If it's a manual refresh/reload, go back to the clean front page
+    if (isReload && window.location.search) {
+        window.location.href = '/';
+        return;
+    }
+
+    // If we have coordinates (and NOT a reload), scroll to results
+    if (urlParams.has('lat') && urlParams.has('lon')) {
+        const resultsSection = document.querySelector('.resource-grid');
+        if (resultsSection) {
+            resultsSection.scrollIntoView({ behavior: 'smooth' });
+        }
+    } 
+    // If we are on the home page and NO coordinates are present, trigger findNearby
+    else if (window.location.pathname === '/' || window.location.pathname === '/find_specific') {
+        if (!urlParams.has('lat')) {
+             findNearby();
+        }
+    }
+});

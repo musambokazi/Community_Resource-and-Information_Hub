@@ -3,6 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <title>Community Hub | Live Resources</title>
+    <link rel="manifest" href="/static/manifest.json">
+    <meta name="theme-color" content="#4f46e5">
     <link rel="stylesheet" href="/static/style.css">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/dist/tabler-icons.min.css" />
 </head>
@@ -11,8 +13,23 @@
     <div class="blob-bg blob-2"></div>
     
     <nav class="navbar">
-        <div class="nav-brand"><i class="ti ti-heart-handshake"></i><span>Community Hub</span></div>
-        <button id="theme-toggle" class="btn-icon"><i class="ti ti-moon"></i></button>
+        <a href="/" class="logo" style="text-decoration: none; color: inherit; display: flex; align-items: center; gap: 0.5rem;">
+            <i class="ti ti-heart-handshake"></i>
+            <span>Community Hub</span>
+        </a>
+        <div style="display: flex; gap: 1rem; align-items: center;">
+            {% if user %}
+                <span style="font-weight: 600; font-size: 0.9rem;">Hi, {{ user.username }}</span>
+                <a href="/logout" class="btn-icon" title="Logout">
+                    <i class="ti ti-logout"></i>
+                </a>
+            {% else %}
+                <a href="/login" class="btn-icon" title="Login/Profile">
+                    <i class="ti ti-user"></i>
+                </a>
+            {% endif %}
+            <button id="theme-toggle" class="btn-icon"><i class="ti ti-moon"></i></button>
+        </div>
     </nav>
 
     <header class="hero">
@@ -26,7 +43,7 @@
             <button id="search-btn" class="btn-primary" onclick="searchSpecificPlace()">Search</button>
         </div>
         <button class="btn-icon" onclick="findNearby()" style="margin-top: 15px; width: 100%; border-radius: 99px;">
-            <i class="ti ti-map-pin"></i> Use My Precise Location
+            <i class="ti ti-map-pin"></i> Use My Current Location
         </button>
     </div>
 
@@ -41,24 +58,55 @@
 
     <main class="resource-grid">
         {% for resource in items %}
-        <article class="card {{ resource.category }}">
+        <article class="card {{ resource.category }}" onclick="window.location.href='/details/{{ resource.place_id }}'" style="cursor: pointer; position: relative;">
             <div class="card-img-wrapper" style="width: 100%; height: 180px; overflow: hidden; border-radius: 12px;">
                 <img src="{{ resource.image }}" alt="{{ resource.title }}" style="width: 100%; height: 100%; object-fit: cover;">
             </div>
 
-            
-
-
-            <div style="padding-top: 1rem;">
+            <div style="padding-top: 1rem; position: relative;">
+                <div style="display: flex; justify-content: flex-end; align-items: flex-start; margin-bottom: 0.5rem;">
+                    <button class="favorite-btn" onclick="event.stopPropagation(); toggleFavorite(this)" style="background: none; border: none; cursor: pointer; color: #94a3b8; font-size: 1.2rem; z-index: 2;">
+                        <i class="ti ti-star"></i>
+                    </button>
+                </div>
                 <h2>{{ resource.title }}</h2>
+                
+                <div class="status-indicator {{ resource.status_class }}" style="margin-bottom: 1rem; font-weight: 600; font-size: 0.9rem; display: flex; align-items: center; gap: 0.5rem;">
+                    <span>{{ "🟢" if resource.status == "Open Now" else "🔴" if resource.status == "Closed" else "⚪" }}</span>
+                    <span>{{ resource.status }}</span>
+                </div>
+
                 <p>{{ resource.desc }}</p>
-                <a href="https://www.google.com/maps/search/?api=1&query={{ resource.lat }},{{ resource.lon }}" 
-                   target="_blank" class="btn-secondary">Get Directions</a>
+                <div style="display: flex; gap: 1rem; flex-wrap: wrap; position: relative; z-index: 2;">
+                    <a href="https://www.google.com/maps/dir/?api=1&destination={{ resource.lat }},{{ resource.lon }}" 
+                       target="_blank" class="btn-secondary" style="font-size: 0.9rem;" onclick="event.stopPropagation();"><i class="ti ti-map"></i> Directions</a>
+                    <span class="btn-secondary" style="font-size: 0.9rem; color: var(--primary);"><i class="ti ti-info-circle"></i> More Info</span>
+                </div>
             </div>
         </article>
         {% endfor %}
     </main>
 
     <script src="/static/script.js"></script>
+    <script>
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('/static/sw.js')
+                    .then(reg => console.log('SW Registered'))
+                    .catch(err => console.log('SW Registration Failed', err));
+            });
+        }
+
+        function toggleFavorite(btn) {
+            const icon = btn.querySelector('i');
+            if (icon.classList.contains('ti-star')) {
+                icon.classList.replace('ti-star', 'ti-star-filled');
+                btn.style.color = '#fbbf24'; // Gold
+            } else {
+                icon.classList.replace('ti-star-filled', 'ti-star');
+                btn.style.color = '#94a3b8'; // Muted
+            }
+        }
+    </script>
 </body>
 </html>

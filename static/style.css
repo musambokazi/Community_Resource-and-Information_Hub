@@ -471,3 +471,25 @@ body.dark-mode .card:hover { border-color: rgba(255, 255, 255, 0.15); }
 html {
     scroll-behavior: smooth;
 }
+
+/* Status Badges */
+.status-badge {
+    padding: 0.2rem 0.6rem;
+    border-radius: 4px;
+    font-size: 0.7rem;
+    font-weight: bold;
+    line-height: 1.2;
+    max-width: 80%;
+}
+
+.status-open {
+    color: #166534;
+}
+
+.status-closed {
+    color: #991b1b;
+}
+
+.status-unknown {
+    color: #475569;
+}
