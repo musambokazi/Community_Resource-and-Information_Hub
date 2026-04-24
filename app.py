@@ -2,19 +2,26 @@ from flask import Flask, render_template, request, redirect, session, url_for
 import sqlite3
 import requests
 import json
+import os
 from datetime import datetime, timedelta
 from werkzeug.security import generate_password_hash, check_password_hash
 
+# Load .env file manually
+if os.path.exists('.env'):
+    with open('.env') as f:
+        for line in f:
+            if '=' in line:
+                key, value = line.strip().split('=', 1)
+                os.environ[key] = value
+
 app = Flask(__name__)
-app.secret_key = "community_hub_secret_key_123"
+app.secret_key = os.environ.get("FLASK_SECRET_KEY", "fallback_secret_key_for_dev")
+API_KEY = os.environ.get("GOOGLE_MAPS_API_KEY")
 
 def get_db_connection():
     conn = sqlite3.connect('database.db')
     conn.row_factory = sqlite3.Row
     return conn
-
-# YOUR API KEY
-API_KEY = "AIzaSyAPNekUGW1nFy1YC5ohKRcKFmblVl15-is"
 
 def get_cached_results(query=None, lat=None, lon=None):
     conn = get_db_connection()
@@ -238,4 +245,4 @@ def add_resource():
     return redirect('/')
 
 if __name__ == '__main__':
-    app.run(debug=True)
+    app.run(debug=True, host='0.0.0.0')
