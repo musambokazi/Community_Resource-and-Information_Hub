@@ -2,8 +2,8 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Community Hub | We're Here For You</title>
-    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <title>Community Hub | Live Resources</title>
+    <link rel="stylesheet" href="/static/style.css">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/dist/tabler-icons.min.css" />
 </head>
 <body>
@@ -16,44 +16,49 @@
     </nav>
 
     <header class="hero">
-        <h1 id="greeting">Welcome to our community.</h1>
-        <p class="subtitle">Find support and local services in your area.</p>
-        <div class="search-wrapper">
-            <div class="search-container">
-                <i class="ti ti-search search-icon"></i>
-                <input type="text" id="search-input" placeholder="What service do you need?">
-                <button id="search-btn" class="btn-primary">Search</button>
-            </div>
+    <h1 id="greeting">Community Hub</h1>
+    <p class="subtitle">Find a specific place or browse nearby services.</p>
+    
+    <div class="search-wrapper">
+        <div class="search-container">
+            <i class="ti ti-search search-icon"></i>
+            <input type="text" id="search-input" placeholder="Type a name (e.g. Springs Mall)...">
+            <button id="search-btn" class="btn-primary" onclick="searchSpecificPlace()">Search</button>
         </div>
- <div class="filter-controls" style="margin-bottom: 20px; display: flex; gap: 10px; flex-wrap: wrap;">
-    <button class="filter-btn active" onclick="filterSelection('all')">All</button>
-    <button class="filter-btn" onclick="filterSelection('hospital')">Health</button>
-    <button class="filter-btn" onclick="filterSelection('transport')">Transport</button>
-    <button class="filter-btn" onclick="filterSelection('police')">Emergency</button>
-    <button class="filter-btn" onclick="filterSelection('library')">Education</button>
-</div>
-        
-    </header>
+        <button class="btn-icon" onclick="findNearby()" style="margin-top: 15px; width: 100%; border-radius: 99px;">
+            <i class="ti ti-map-pin"></i> Use My Precise Location
+        </button>
+    </div>
+
+    <div class="filter-controls">
+        <button class="filter-btn active" onclick="filterSelection('all')">All</button>
+        <button class="filter-btn" onclick="filterSelection('hospital')">Health</button>
+        <button class="filter-btn" onclick="filterSelection('transport')">Transport</button>
+        <button class="filter-btn" onclick="filterSelection('police')">Emergency</button>
+        <button class="filter-btn" onclick="filterSelection('library')">Education</button>
+    </div>
+</header>
 
     <main class="resource-grid">
-    {% for resource in items %}
-    <article class="card {{ resource.category }}">
-        
-        <div class="card-img-wrapper" style="width: 100%; height: 160px; overflow: hidden; border-radius: 12px; margin-bottom: 1.2rem;">
-            <img src="{{ resource.image }}" 
-                 alt="{{ resource.title }}" 
-                 style="width: 100%; height: 100%; object-fit: cover; transition: transform 0.3s ease;">
-        </div>
+        {% for resource in items %}
+        <article class="card {{ resource.category }}">
+            <div class="card-img-wrapper" style="width: 100%; height: 180px; overflow: hidden; border-radius: 12px;">
+                <img src="{{ resource.image }}" alt="{{ resource.title }}" style="width: 100%; height: 100%; object-fit: cover;">
+            </div>
 
-        <h2>{{ resource.title }}</h2>
-        <p>{{ resource.desc }}</p>
-        
-        <a href="https://www.google.com/maps/search/?api=1&query={{ resource.title|replace(' ', '+') }}&query_place_id={{ resource.lat }},{{ resource.lon }}" 
-   target="_blank" class="btn-secondary">Route</a>
-        </div>
-    </article>
-    {% endfor %}
-</main>
-    <script src="{{ url_for('static', filename='script.js') }}"></script>
+            
+
+
+            <div style="padding-top: 1rem;">
+                <h2>{{ resource.title }}</h2>
+                <p>{{ resource.desc }}</p>
+                <a href="https://www.google.com/maps/search/?api=1&query={{ resource.lat }},{{ resource.lon }}" 
+                   target="_blank" class="btn-secondary">Get Directions</a>
+            </div>
+        </article>
+        {% endfor %}
+    </main>
+
+    <script src="/static/script.js"></script>
 </body>
 </html>

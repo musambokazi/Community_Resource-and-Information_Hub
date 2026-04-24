@@ -1,32 +1,45 @@
+/* Your Original Light Colors */
 :root {
-    --bg-color: #fdfbf7; /* Warm off-white */
+    --bg-color: #fdfbf7; 
     --text-main: #2d3748;
     --text-muted: #718096;
     --card-bg: rgba(255, 255, 255, 0.6);
     --card-border: rgba(255, 255, 255, 0.8);
-    
-    --primary: #fb923c; /* warm orange/peach */
+    --primary: #fb923c; 
     --primary-hover: #ea580c;
-    --secondary: #3b82f6; /* friendly blue */
-    --danger: #ef4444; /* soft red */
-    
-    --shadow-soft: 0 20px 40px -15px rgba(0,0,0,0.05);
     --blob-1: #ffdca8;
     --blob-2: #c4def6;
+    --gradient-opacity: 0.4;
 }
 
 body.dark-mode {
-    --bg-color: #0f172a; /* Deep blue-gray */
+    --bg-color: #0a1224; /* Deeper Navy Blue */
     --text-main: #f8fafc;
     --text-muted: #94a3b8;
-    --card-bg: rgba(30, 41, 59, 0.6);
-    --card-border: rgba(255, 255, 255, 0.05);
-    
-    --primary: #f97316;
-    --primary-hover: #c2410c;
-    --blob-1: #4c1d95;
-    --blob-2: #0e7490;
-    --shadow-soft: 0 20px 40px -15px rgba(0,0,0,0.5);
+    --card-bg: rgba(15, 23, 42, 0.8); /* Solidify the cards slightly */
+    --card-border: rgba(255, 255, 255, 0.1);
+    --blob-1: #1e293b; /* Darker navy blobs */
+    --blob-2: #0f172a;
+    --gradient-opacity: 0.2; /* Less visible in dark mode for a cleaner look */
+}
+
+/* Adjusting the blobs to be less "gradient" looking */
+.blob-bg {
+    position: fixed;
+    top: -10%;
+    left: -10%;
+    width: 400px;
+    height: 400px;
+    background: var(--blob-1);
+    filter: blur(80px); /* Reduced blur makes it look less like a gradient */
+    opacity: var(--gradient-opacity);
+    z-index: -1;
+}
+
+.blob-2 {
+    top: 60%;
+    left: 70%;
+    background: var(--blob-2);
 }
 
 * {
@@ -42,7 +55,7 @@ body {
     min-height: 100vh;
     position: relative;
     overflow-x: hidden;
-    transition: background-color 0.5s ease, color 0.5s ease;
+    transition: background-color 0.3s ease, color 0.3s ease;
 }
 
 /* Background animated blobs for a lively, human feel */
@@ -412,4 +425,49 @@ body.dark-mode .card:hover { border-color: rgba(255, 255, 255, 0.15); }
     flex-direction: column;
     padding: 1.5rem;
     min-height: 420px;
+}
+
+.filter-controls {
+    display: flex;
+    gap: 12px;
+    justify-content: center;
+    flex-wrap: wrap;
+    margin: 2rem 0;
+}
+
+/* This one class handles all your buttons now */
+.filter-btn {
+    background: var(--card-bg); /* Glass effect */
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    border: 1px solid var(--card-border);
+    color: var(--text-main);
+    padding: 0.8rem 1.8rem;
+    border-radius: 99px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.filter-btn:hover, .filter-btn.active {
+    background: var(--primary); /* Orange glow on hover */
+    color: white;
+    transform: translateY(-3px);
+    box-shadow: 0 10px 20px -5px rgba(251, 146, 60, 0.4);
+    border-color: var(--primary);
+}
+
+/* Update your dark mode variables to look for [data-theme='dark'] */
+[data-theme='dark'] {
+    --bg-color: #0f172a; 
+    --text-main: #f8fafc;
+    --text-muted: #94a3b8;
+    --card-bg: rgba(30, 41, 59, 0.6);
+    --card-border: rgba(255, 255, 255, 0.05);
+    --primary: #f97316;
+    --primary-hover: #c2410c;
+}
+
+html {
+    scroll-behavior: smooth;
 }
