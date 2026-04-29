@@ -11,40 +11,58 @@ A Flask-based web application designed to help community members in South Africa
 ## 🛠️ Tech Stack
 - **Backend**: Python (Flask)
 - **Frontend**: HTML5, CSS3, JavaScript (Vanilla)
-- **Database**: PostgreSQL (with SQLAlchemy ORM)
+- **Database**: SQLite
 - **APIs**: Google Places API (Maps)
 - **Testing**: Pytest with Requests-Mock
 
 ## 📋 Prerequisites
 Ensure you have the following installed:
 - Python 3.10+
-- PostgreSQL
 - A Google Cloud API Key (with Places API enabled)
 
 ## 🔧 Installation & Setup
 
 1. **Clone the Repository**
    ```bash
-   git clone [https://github.com/m_h_t-musa/Community_Resource-and-Information_Hub.git](https://github.com/m_h_t-musa/Community_Resource-and-Information_Hub.git)
+   git clone https://github.com/m_h_t-musa/Community_Resource-and-Information_Hub.git
    cd Community_Resource-and-Information_Hub
-
-2. **Install Dependencies**
-   ```bash
-   pip install flask requests psycopg2-binary SQLAlchemy pytest requests-mock
    ```
 
-3. **Database Configuration**
-   Initialize your PostgreSQL database and run the migration script to create tables:
+2. **Create and Activate a Virtual Environment**
+   ```bash
+   # Create the virtual environment
+   python3 -m venv .venv
+   
+   # Activate on Linux/macOS
+   source .venv/bin/activate
+   
+   # Activate on Windows
+   .venv\Scripts\activate
+   ```
+
+3. **Install Dependencies**
+   Ensure your virtual environment is active, then run:
+   ```bash
+   pip install flask requests pytest requests-mock werkzeug
+   ```
+
+4. **Database Configuration**
+   Initialize your SQLite database:
    ```bash
    python3 init_db.py
    ```
 
-4. **Add Your API Key**
-   Open `app.py` and replace the `API_KEY` variable with your unique Google Cloud key.
+5. **Add Your API Key & Configuration**
+   Create a `.env` file in the root directory and add your Google Maps API key and Flask Secret key:
+   ```env
+   GOOGLE_MAPS_API_KEY=your_actual_api_key_here
+   FLASK_SECRET_KEY=your_secret_key_here
+   ```
 
 ## 🚀 Running the App
 
 1. **Start the Flask Server**
+   Ensure your `.venv` is activated, then start the server:
    ```bash
    python3 app.py
    ```

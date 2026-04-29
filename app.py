@@ -57,7 +57,9 @@ def home():
     search_types = [
         {'type': 'police', 'filter': 'police'},
         {'type': 'hospital', 'filter': 'hospital'},
-        {'type': 'library', 'filter': 'library'},
+        {'type': 'library', 'filter': 'education'},
+        {'type': 'school', 'filter': 'education'},
+        {'type': 'university', 'filter': 'education'},
         {'type': 'taxi_stand', 'filter': 'transport'}
     ]
     
