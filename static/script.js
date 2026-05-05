@@ -21,13 +21,33 @@ function findNearby() {
 }
 
 // Category Filter Function
-function filterSelection(c) {
+function filterSelection(c, btn) {
     var x = document.getElementsByClassName("card");
-    if (c == "all") c = "";
+    
+    // Manage active state on buttons if btn is passed
+    if (btn) {
+        var btns = document.getElementsByClassName("filter-btn");
+        for (var j = 0; j < btns.length; j++) {
+            btns[j].classList.remove("active");
+        }
+        btn.classList.add("active");
+    }
+
+    var filterC = c;
+    if (c == "all") filterC = "";
+    
     for (var i = 0; i < x.length; i++) {
         x[i].style.display = "none"; 
-        if (x[i].className.indexOf(c) > -1) {
-            x[i].style.display = "flex"; 
+        if (c === "all") {
+            // Show only nearest items for each category on "All" page
+            if (x[i].className.indexOf("is-nearest") > -1 || x[i].className.indexOf("search-result") > -1) {
+                x[i].style.display = "flex"; 
+            }
+        } else {
+            // Specific category view: show all items matching category
+            if (x[i].className.indexOf(filterC) > -1) {
+                x[i].style.display = "flex"; 
+            }
         }
     }
 }

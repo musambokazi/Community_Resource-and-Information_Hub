@@ -3,8 +3,16 @@ import sqlite3
 import requests
 import json
 import os
+import math
 from datetime import datetime, timedelta
 from werkzeug.security import generate_password_hash, check_password_hash
+
+def haversine(lat1, lon1, lat2, lon2):
+    R = 6371
+    dLat = math.radians(lat2 - lat1)
+    dLon = math.radians(lon2 - lon1)
+    a = math.sin(dLat/2) * math.sin(dLat/2) + math.cos(math.radians(lat1)) * math.cos(math.radians(lat2)) * math.sin(dLon/2) * math.sin(dLon/2)
+    return R * 2 * math.atan2(math.sqrt(a), math.sqrt(1-a))
 
 # Load .env file manually
 if os.path.exists('.env'):
@@ -47,6 +55,9 @@ def home():
         user = conn.execute('SELECT * FROM users WHERE id = ?', (session['user_id'],)).fetchone()
         conn.close()
 
+    if not user and not session.get('guest'):
+        return redirect('/login')
+
     lat = request.args.get('lat', '-26.2500')
     lon = request.args.get('lon', '28.4333')
     
@@ -65,7 +76,7 @@ def home():
     
     all_results = []
     for item in search_types:
-        url = f"https://maps.googleapis.com/maps/api/place/nearbysearch/json?location={lat},{lon}&radius=5000&type={item['type']}&key={API_KEY}"
+        url = f"https://maps.googleapis.com/maps/api/place/nearbysearch/json?location={lat},{lon}&rankby=distance&type={item['type']}&key={API_KEY}"
         response = requests.get(url).json()
 
         if "results" in response:
@@ -96,8 +107,19 @@ def home():
                     "status_class": status_class,
                     "place_id": place.get('place_id')
                 })
+
+    cat_min_dist = {}
+    for i, res in enumerate(all_results):
+        dist = haversine(float(lat), float(lon), float(res['lat']), float(res['lon']))
+        cat = res['category']
+        if cat not in cat_min_dist or dist < cat_min_dist[cat][0]:
+            cat_min_dist[cat] = (dist, i)
+
+    for i, res in enumerate(all_results):
+        res['is_nearest'] = (i == cat_min_dist.get(res['category'], (None, -1))[1])
     
-    cache_results(all_results, lat=lat, lon=lon)
+    if user:
+        cache_results(all_results, lat=lat, lon=lon)
     return render_template('index.html', items=all_results, user=user)
 
 @app.route('/find_specific')
@@ -107,6 +129,9 @@ def find_specific():
         conn = get_db_connection()
         user = conn.execute('SELECT * FROM users WHERE id = ?', (session['user_id'],)).fetchone()
         conn.close()
+
+    if not user and not session.get('guest'):
+        return redirect('/login')
 
     query = request.args.get('name')
     lat = request.args.get('lat', '-26.2500')
@@ -149,7 +174,8 @@ def find_specific():
                 "place_id": place.get('place_id')
             })
     
-    cache_results(search_results, query=query)
+    if user:
+        cache_results(search_results, query=query)
     return render_template('index.html', items=search_results, user=user)
 
 @app.route('/details/<place_id>')
@@ -159,6 +185,9 @@ def details(place_id):
         conn = get_db_connection()
         user = conn.execute('SELECT * FROM users WHERE id = ?', (session['user_id'],)).fetchone()
         conn.close()
+
+    if not user and not session.get('guest'):
+        return redirect('/login')
 
     # Check cache first
     cached = get_cached_results(query=f"details_{place_id}")
@@ -190,7 +219,8 @@ def details(place_id):
             "weekday_text": place.get('opening_hours', {}).get('weekday_text', []),
             "reviews": place.get('reviews', [])[:3]
         }
-        cache_results(info, query=f"details_{place_id}")
+        if user:
+            cache_results(info, query=f"details_{place_id}")
         return render_template('details.html', info=info, user=user)
     return redirect('/')
 
@@ -231,8 +261,15 @@ def logout():
     session.clear()
     return redirect('/')
 
+@app.route('/guest')
+def guest():
+    session['guest'] = True
+    return redirect('/')
+
 @app.route('/add', methods=['POST'])
 def add_resource():
+    if 'user_id' not in session:
+        return redirect('/login')
     title = request.form.get('title')
     category = request.form.get('category')
     desc = request.form.get('desc')
