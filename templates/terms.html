@@ -3,23 +3,37 @@
 <head>
     <meta charset="UTF-8">
     <title>Terms of Service | Community Hub</title>
-    <link rel="stylesheet" href="/static/style.css">
+    <link href="https://cdn.jsdelivr.net/npm/geist@1.0.0/dist/fonts/geist-sans/style.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/dist/tabler-icons.min.css" />
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: { sans: ['Geist', 'sans-serif'] },
+                    colors: { background: '#09090b', foreground: '#fafafa', primary: '#f97316', card: 'rgba(24, 24, 27, 0.6)', border: 'rgba(255, 255, 255, 0.08)' }
+                }
+            }
+        }
+    </script>
+    <link rel="stylesheet" href="/static/style.css">
 </head>
-<body data-theme="dark">
-    <nav class="navbar">
-        <a href="/" class="logo" style="text-decoration: none; display: flex; align-items: center; gap: 0.5rem;">
-            <i class="ti ti-heart-handshake" style="color: var(--primary);"></i>
-            <span>Community Hub</span>
+<body class="bg-background text-foreground antialiased selection:bg-primary/30 relative overflow-hidden min-h-screen">
+    <!-- Background Blobs -->
+    <div class="blob-bg blob-1"></div>
+    <div class="blob-bg blob-2"></div>
+    
+    <nav class="flex justify-between items-center px-8 py-6 max-w-7xl mx-auto backdrop-blur-md sticky top-0 z-50 bg-background/50 border-b border-border">
+        <a href="/" class="text-2xl font-bold tracking-tight flex items-center gap-2 hover:opacity-80 transition-opacity">
+            <span class="text-primary text-3xl">✦</span>
+            Community Hub
         </a>
-        <div style="display: flex; gap: 1rem; align-items: center;">
-            <a href="/" class="btn-icon" title="Home">
-                <i class="ti ti-home"></i>
-            </a>
-        </div>
+        <a href="/" class="px-5 py-2 rounded-full border border-border bg-card hover:bg-white hover:text-black transition-colors font-medium text-sm">
+            <i class="ti ti-home"></i> Home
+        </a>
     </nav>
 
-    <main class="legal-container">
+    <main class="max-w-3xl mx-auto px-6 pt-24 pb-32 prose prose-invert prose-headings:font-bold prose-a:text-primary">
         <h1>Terms of Service</h1>
         <p>Last updated: May 6, 2026</p>
 
@@ -38,45 +52,9 @@
         <h2>5. Modifications to Service</h2>
         <p>Community Hub reserves the right at any time and from time to time to modify or discontinue, temporarily or permanently, the Service (or any part thereof) with or without notice. You agree that Community Hub shall not be liable to you or to any third party for any modification, suspension, or discontinuance of the Service.</p>
         
-        <div style="margin-top: 4rem; text-align: center;">
-            <a href="/" class="btn-primary" style="text-decoration: none; display: inline-block;">Return to Home</a>
-        </div>
+    <div class="mt-20 text-center">
+        <a href="/" class="bg-foreground text-background px-6 py-3 rounded-full font-semibold hover:bg-primary hover:text-white transition-colors inline-block">Return to Home</a>
+    </div>
     </main>
-
-    <footer class="main-footer">
-        <div class="footer-content">
-            <div class="footer-section brand">
-                <div class="logo">
-                    <i class="ti ti-heart-handshake"></i>
-                    <span>Community Hub</span>
-                </div>
-                <p>Empowering communities by connecting people with essential local resources in real-time.</p>
-            </div>
-            <div class="footer-section links">
-                <h3>Quick Links</h3>
-                <ul>
-                    <li><a href="/">Home</a></li>
-                    <li><a href="/login">Account</a></li>
-                    <li><a href="/terms">Terms of Service</a></li>
-                    <li><a href="/privacy">Privacy Policy</a></li>
-                </ul>
-            </div>
-            <div class="footer-section social">
-                <h3>Stay Connected</h3>
-                <div class="social-icons">
-                    <a href="#" class="social-btn"><i class="ti ti-brand-facebook"></i></a>
-                    <a href="#" class="social-btn"><i class="ti ti-brand-twitter"></i></a>
-                    <a href="#" class="social-btn"><i class="ti ti-brand-instagram"></i></a>
-                </div>
-            </div>
-        </div>
-        <div class="footer-bottom">
-            <p>&copy; 2026 Community Hub. All rights reserved. Designed for impact.</p>
-        </div>
-    </footer>
-    <script>
-        const savedTheme = localStorage.getItem('theme') || 'light';
-        document.body.setAttribute('data-theme', savedTheme);
-    </script>
 </body>
 </html>

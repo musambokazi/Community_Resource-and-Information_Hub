@@ -1,379 +1,224 @@
-from flask import Flask, render_template, request, redirect, session, url_for, jsonify
-from flask_cors import CORS
-import sqlite3
-import requests
-import json
 import os
+import json
 import math
 from datetime import datetime, timedelta
+from flask import Flask, render_template, request, redirect, session, jsonify, make_response
+from flask_sqlalchemy import SQLAlchemy
+from flask_talisman import Talisman
+from flask_limiter import Limiter
+from flask_limiter.util import get_remote_address
+import requests
 from werkzeug.security import generate_password_hash, check_password_hash
 
-def haversine(lat1, lon1, lat2, lon2):
-    R = 6371
-    dLat = math.radians(lat2 - lat1)
-    dLon = math.radians(lon2 - lon1)
-    a = math.sin(dLat/2) * math.sin(dLat/2) + math.cos(math.radians(lat1)) * math.cos(math.radians(lat2)) * math.sin(dLon/2) * math.sin(dLon/2)
-    return R * 2 * math.atan2(math.sqrt(a), math.sqrt(1-a))
+# Extensions
+db = SQLAlchemy()
+limiter = Limiter(key_func=get_remote_address)
+talisman = Talisman()
 
-# Load .env file manually
-if os.path.exists('.env'):
-    with open('.env') as f:
-        for line in f:
-            if '=' in line:
-                key, value = line.strip().split('=', 1)
-                os.environ[key] = value
+# Models
+class User(db.Model):
+    __tablename__ = 'users'
+    id = db.Column(db.Integer, primary_key=True)
+    username = db.Column(db.String(80), unique=True, nullable=False)
+    password = db.Column(db.String(255), nullable=False)
 
-app = Flask(__name__)
-CORS(app) # Enable CORS for the React frontend
-app.secret_key = os.environ.get("FLASK_SECRET_KEY", "fallback_secret_key_for_dev")
-API_KEY = os.environ.get("GOOGLE_MAPS_API_KEY")
+class CachedResult(db.Model):
+    __tablename__ = 'cached_results'
+    id = db.Column(db.Integer, primary_key=True)
+    query = db.Column(db.String(255), nullable=True)
+    lat = db.Column(db.Float, nullable=True)
+    lon = db.Column(db.Float, nullable=True)
+    results_json = db.Column(db.Text, nullable=False)
+    timestamp = db.Column(db.DateTime, default=datetime.utcnow)
 
-def get_db_connection():
-    conn = sqlite3.connect('database.db')
-    conn.row_factory = sqlite3.Row
-    return conn
+def create_app():
+    # Load .env file manually
+    if os.path.exists('.env'):
+        with open('.env') as f:
+            for line in f:
+                if '=' in line:
+                    key, value = line.strip().split('=', 1)
+                    os.environ[key] = value
 
-def get_cached_results(query=None, lat=None, lon=None):
-    conn = get_db_connection()
-    threshold_time = (datetime.now() - timedelta(hours=24)).strftime('%Y-%m-%d %H:%M:%S')
-    if query:
-        res = conn.execute("SELECT results_json FROM cached_results WHERE query = ? AND timestamp > ?", (query, threshold_time)).fetchone()
-    else:
-        res = conn.execute("SELECT results_json FROM cached_results WHERE ROUND(lat, 3) = ROUND(?, 3) AND ROUND(lon, 3) = ROUND(?, 3) AND query IS NULL AND timestamp > ?", (float(lat), float(lon), threshold_time)).fetchone()
-    conn.close()
-    return json.loads(res['results_json']) if res else None
+    app = Flask(__name__)
+    app.secret_key = os.environ.get("FLASK_SECRET_KEY", "fallback_secret_key_for_dev")
+    app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get('DATABASE_URL', 'sqlite:///community.db')
+    app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
-def cache_results(results, query=None, lat=None, lon=None):
-    conn = get_db_connection()
-    conn.execute("INSERT INTO cached_results (query, lat, lon, results_json) VALUES (?, ?, ?, ?)", (query, lat, lon, json.dumps(results)))
-    conn.commit()
-    conn.close()
-
-@app.route('/')
-def home():
-    user = None
-    if 'user_id' in session:
-        conn = get_db_connection()
-        user = conn.execute('SELECT * FROM users WHERE id = ?', (session['user_id'],)).fetchone()
-        conn.close()
-
-    if not user and not session.get('guest'):
-        return redirect('/login')
-
-    lat = request.args.get('lat', '-26.2500')
-    lon = request.args.get('lon', '28.4333')
+    # Initialize Extensions
+    db.init_app(app)
+    limiter.init_app(app)
     
-    cached = get_cached_results(lat=lat, lon=lon)
-    if cached:
-        return render_template('index.html', items=cached, user=user)
+    # Configure Talisman (Content Security Policy for CDN)
+    csp = {
+        'default-src': ["'self'"],
+        'script-src': ["'self'", "'unsafe-inline'", "https://cdn.tailwindcss.com", "https://cdn.jsdelivr.net"],
+        'style-src': ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com", "https://cdn.jsdelivr.net"],
+        'font-src': ["'self'", "https://fonts.gstatic.com", "https://cdn.jsdelivr.net"],
+        'img-src': ["'self'", "data:", "https://maps.googleapis.com", "https://via.placeholder.com", "https://i.pravatar.cc"],
+        'connect-src': ["'self'", "https://maps.googleapis.com"]
+    }
+    talisman.init_app(app, content_security_policy=csp, force_https=False) # force_https=False for local dev
 
-    search_types = [
-        {'type': 'police', 'filter': 'police'},
-        {'type': 'hospital', 'filter': 'hospital'},
-        {'type': 'library', 'filter': 'education'},
-        {'type': 'school', 'filter': 'education'},
-        {'type': 'university', 'filter': 'education'},
-        {'type': 'taxi_stand', 'filter': 'transport'}
-    ]
-    
-    all_results = []
-    for item in search_types:
-        url = f"https://maps.googleapis.com/maps/api/place/nearbysearch/json?location={lat},{lon}&rankby=distance&type={item['type']}&key={API_KEY}"
+    with app.app_context():
+        db.create_all()
+
+    API_KEY = os.environ.get("GOOGLE_MAPS_API_KEY")
+
+    def get_cached(query=None, lat=None, lon=None):
+        threshold = datetime.utcnow() - timedelta(hours=24)
+        if query:
+            res = CachedResult.query.filter(CachedResult.query == query, CachedResult.timestamp > threshold).first()
+        else:
+            # Simple approximation for lat/lon caching (rounded to 3 decimal places)
+            res = CachedResult.query.filter(
+                db.func.round(CachedResult.lat, 3) == round(float(lat), 3),
+                db.func.round(CachedResult.lon, 3) == round(float(lon), 3),
+                CachedResult.query == None,
+                CachedResult.timestamp > threshold
+            ).first()
+        return json.loads(res.results_json) if res else None
+
+    def save_cache(results, query=None, lat=None, lon=None):
+        cache = CachedResult(query=query, lat=lat, lon=lon, results_json=json.dumps(results))
+        db.session.add(cache)
+        db.session.commit()
+
+    # Routes
+    @app.route('/')
+    @limiter.limit("60 per minute")
+    def home():
+        user = None
+        if 'user_id' in session:
+            user = User.query.get(session['user_id'])
+
+        if not user and not session.get('guest'):
+            return redirect('/login')
+
+        return render_template('index.html', user=user)
+
+    @app.route('/api/nearby')
+    def api_nearby():
+        lat = request.args.get('lat', '-26.2500')
+        lon = request.args.get('lon', '28.4333')
+        
+        cached = get_cached(lat=lat, lon=lon)
+        if cached: return jsonify({"success": True, "data": cached})
+
+        search_types = [
+            {'type': 'police', 'filter': 'police'},
+            {'type': 'hospital', 'filter': 'hospital'},
+            {'type': 'school', 'filter': 'education'},
+            {'type': 'taxi_stand', 'filter': 'transport'}
+        ]
+        
+        all_results = []
+        for item in search_types:
+            url = f"https://maps.googleapis.com/maps/api/place/nearbysearch/json?location={lat},{lon}&rankby=distance&type={item['type']}&key={API_KEY}"
+            response = requests.get(url).json()
+
+            if "results" in response:
+                for place in response["results"][:3]:
+                    photo_ref = place.get('photos', [{}])[0].get('photo_reference')
+                    img_url = f"https://maps.googleapis.com/maps/api/place/photo?maxwidth=400&photoreference={photo_ref}&key={API_KEY}" if photo_ref else "https://via.placeholder.com/400"
+                    
+                    all_results.append({
+                        "title": place.get('name'),
+                        "category": item['filter'], 
+                        "image": img_url,
+                        "desc": place.get('vicinity', 'Nearby service'),
+                        "lat": place['geometry']['location']['lat'],
+                        "lon": place['geometry']['location']['lng'],
+                        "is_open": place.get('opening_hours', {}).get('open_now'),
+                        "place_id": place.get('place_id')
+                    })
+        
+        save_cache(all_results, lat=lat, lon=lon)
+        return jsonify({"success": True, "data": all_results})
+
+    @app.route('/api/search')
+    @limiter.limit("30 per minute")
+    def api_search():
+        query = request.args.get('q')
+        lat = request.args.get('lat', '-26.2500')
+        lon = request.args.get('lon', '28.4333')
+        if not query: return jsonify({"success": False})
+
+        cached = get_cached(query=query)
+        if cached: return jsonify({"success": True, "data": cached})
+
+        url = f"https://maps.googleapis.com/maps/api/place/textsearch/json?query={query}&location={lat},{lon}&radius=10000&key={API_KEY}"
         response = requests.get(url).json()
-
+        
+        results = []
         if "results" in response:
-            for place in response["results"][:3]:
+            for place in response["results"][:12]:
                 photo_ref = place.get('photos', [{}])[0].get('photo_reference')
                 img_url = f"https://maps.googleapis.com/maps/api/place/photo?maxwidth=400&photoreference={photo_ref}&key={API_KEY}" if photo_ref else "https://via.placeholder.com/400"
-
-                # Check opening hours
-                is_open = place.get('opening_hours', {}).get('open_now')
-                if is_open is True:
-                    status = "Open Now"
-                    status_class = "status-open"
-                elif is_open is False:
-                    status = "Closed"
-                    status_class = "status-closed"
-                else:
-                    status = "Hours Unconfirmed (Verify via phone)"
-                    status_class = "status-unknown"
-
-                all_results.append({
+                results.append({
                     "title": place.get('name'),
-                    "category": item['filter'], 
+                    "category": "search-result",
                     "image": img_url,
-                    "desc": place.get('vicinity', 'Nearby service'),
+                    "desc": place.get('formatted_address'),
                     "lat": place['geometry']['location']['lat'],
                     "lon": place['geometry']['location']['lng'],
-                    "status": status,
-                    "status_class": status_class,
+                    "is_open": place.get('opening_hours', {}).get('open_now'),
                     "place_id": place.get('place_id')
                 })
+        
+        save_cache(results, query=query)
+        return jsonify({"success": True, "data": results})
 
-    cat_min_dist = {}
-    for i, res in enumerate(all_results):
-        dist = haversine(float(lat), float(lon), float(res['lat']), float(res['lon']))
-        cat = res['category']
-        if cat not in cat_min_dist or dist < cat_min_dist[cat][0]:
-            cat_min_dist[cat] = (dist, i)
-
-    for i, res in enumerate(all_results):
-        res['is_nearest'] = (i == cat_min_dist.get(res['category'], (None, -1))[1])
-    
-    if user:
-        cache_results(all_results, lat=lat, lon=lon)
-    return render_template('index.html', items=all_results, user=user)
-
-@app.route('/find_specific')
-def find_specific():
-    user = None
-    if 'user_id' in session:
-        conn = get_db_connection()
-        user = conn.execute('SELECT * FROM users WHERE id = ?', (session['user_id'],)).fetchone()
-        conn.close()
-
-    if not user and not session.get('guest'):
-        return redirect('/login')
-
-    query = request.args.get('name')
-    lat = request.args.get('lat', '-26.2500')
-    lon = request.args.get('lon', '28.4333')
-
-    cached = get_cached_results(query=query)
-    if cached:
-        return render_template('index.html', items=cached, user=user)
-
-    url = f"https://maps.googleapis.com/maps/api/place/textsearch/json?query={query}&location={lat},{lon}&radius=10000&key={API_KEY}"
-    response = requests.get(url).json()
-    
-    search_results = []
-    if "results" in response:
-        for place in response["results"]:
-            photo_ref = place.get('photos', [{}])[0].get('photo_reference')
-            img_url = f"https://maps.googleapis.com/maps/api/place/photo?maxwidth=400&photoreference={photo_ref}&key={API_KEY}" if photo_ref else "https://via.placeholder.com/400"
+    @app.route('/login', methods=['GET', 'POST'])
+    def login():
+        if request.method == 'POST':
+            if 'guest' in request.form:
+                session['guest'] = True
+                return redirect('/')
             
-            # Check opening hours
-            is_open = place.get('opening_hours', {}).get('open_now')
-            if is_open is True:
-                status = "Open Now"
-                status_class = "status-open"
-            elif is_open is False:
-                status = "Closed"
-                status_class = "status-closed"
-            else:
-                status = "Hours Unconfirmed (Verify via phone)"
-                status_class = "status-unknown"
+            username = request.form['username']
+            password = request.form['password']
+            user = User.query.filter_by(username=username).first()
+            if user and check_password_hash(user.password, password):
+                session['user_id'] = user.id
+                session.pop('guest', None)
+                return redirect('/')
+            return "Invalid credentials", 401
+        return render_template('login.html')
 
-            search_results.append({
-                "title": place.get('name'),
-                "category": "search-result",
-                "image": img_url,
-                "desc": place.get('formatted_address'),
-                "lat": place['geometry']['location']['lat'],
-                "lon": place['geometry']['location']['lng'],
-                "status": status,
-                "status_class": status_class,
-                "place_id": place.get('place_id')
-            })
-    
-    if user:
-        cache_results(search_results, query=query)
-    return render_template('index.html', items=search_results, user=user)
-
-@app.route('/details/<place_id>')
-def details(place_id):
-    user = None
-    if 'user_id' in session:
-        conn = get_db_connection()
-        user = conn.execute('SELECT * FROM users WHERE id = ?', (session['user_id'],)).fetchone()
-        conn.close()
-
-    if not user and not session.get('guest'):
+    @app.route('/logout')
+    def logout():
+        session.clear()
         return redirect('/login')
 
-    # Check cache first
-    cached = get_cached_results(query=f"details_{place_id}")
-    if cached:
-        return render_template('details.html', info=cached, user=user)
+    @app.route('/terms')
+    def terms():
+        return render_template('terms.html')
 
-    fields = "name,rating,formatted_phone_number,opening_hours,geometry,vicinity,formatted_address,website,url,photos,reviews"
-    url = f"https://maps.googleapis.com/maps/api/place/details/json?place_id={place_id}&fields={fields}&key={API_KEY}"
-    response = requests.get(url).json()
-    
-    if "result" in response:
-        place = response["result"]
-        photos = []
-        for p in place.get('photos', [])[:5]:
-            ref = p.get('photo_reference')
-            photos.append(f"https://maps.googleapis.com/maps/api/place/photo?maxwidth=800&photoreference={ref}&key={API_KEY}")
-        if not photos: photos = ["https://via.placeholder.com/800"]
+    @app.route('/privacy')
+    def privacy():
+        return render_template('privacy.html')
 
-        info = {
-            "name": place.get('name'),
-            "vicinity": place.get('vicinity', place.get('formatted_address')),
-            "formatted_phone_number": place.get('formatted_phone_number', 'Not Available'),
-            "website": place.get('website'),
-            "rating": place.get('rating', 'No rating'),
-            "image": photos[0],
-            "photos": photos,
-            "url": place.get('url'),
-            "opening_hours": place.get('opening_hours', {}),
-            "weekday_text": place.get('opening_hours', {}).get('weekday_text', []),
-            "reviews": place.get('reviews', [])[:3]
-        }
-        if user:
-            cache_results(info, query=f"details_{place_id}")
-        return render_template('details.html', info=info, user=user)
-    return redirect('/')
+    @app.route('/sitemap.xml')
+    def sitemap():
+        """Dynamic Sitemap Generation"""
+        pages = [
+            {"url": "/", "priority": 1.0},
+            {"url": "/terms", "priority": 0.5},
+            {"url": "/privacy", "priority": 0.5}
+        ]
+        
+        sitemap_xml = '<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n'
+        for page in pages:
+            sitemap_xml += f"  <url>\n    <loc>https://yourdomain.com{page['url']}</loc>\n    <priority>{page['priority']}</priority>\n  </url>\n"
+        sitemap_xml += "</urlset>"
+        
+        response = make_response(sitemap_xml)
+        response.headers["Content-Type"] = "application/xml"
+        return response
 
-@app.route('/login', methods=['GET', 'POST'])
-def login():
-    if request.method == 'POST':
-        username = request.form['username']
-        password = request.form['password']
-        conn = get_db_connection()
-        user = conn.execute('SELECT * FROM users WHERE username = ?', (username,)).fetchone()
-        conn.close()
-        if user and check_password_hash(user['password'], password):
-            session['user_id'] = user['id']
-            session['username'] = user['username']
-            return redirect('/')
-        return "Invalid login"
-    return render_template('login.html')
-
-@app.route('/signup', methods=['POST'])
-def signup():
-    username = request.form['username']
-    email = request.form['email']
-    password = request.form['password']
-    hashed_pw = generate_password_hash(password)
-    conn = get_db_connection()
-    try:
-        conn.execute('INSERT INTO users (username, email, password) VALUES (?, ?, ?)', (username, email, hashed_pw))
-        conn.commit()
-        user = conn.execute('SELECT id FROM users WHERE username = ?', (username,)).fetchone()
-        session['user_id'] = user['id']
-        session['username'] = username
-    except: return "Username or email already exists"
-    finally: conn.close()
-    return redirect('/')
-
-@app.route('/logout')
-def logout():
-    session.clear()
-    return redirect('/')
-
-@app.route('/guest')
-def guest():
-    session['guest'] = True
-    return redirect('/')
-
-@app.route('/add', methods=['POST'])
-def add_resource():
-    if 'user_id' not in session:
-        return redirect('/login')
-    title = request.form.get('title')
-    category = request.form.get('category')
-    desc = request.form.get('desc')
-    lat = request.form.get('lat')
-    lon = request.form.get('lon')
-    phone = request.form.get('phone')
-    if title and category:
-        conn = get_db_connection()
-        conn.execute("INSERT INTO resources (title, category, desc, lat, lon, phone) VALUES (?, ?, ?, ?, ?, ?)", (title, category, desc, lat, lon, phone))
-        conn.commit()
-        conn.close()
-    return redirect('/')
-
-@app.route('/terms')
-def terms():
-    return render_template('terms.html')
-
-@app.route('/privacy')
-def privacy():
-    return render_template('privacy.html')
-
-# --- API ENDPOINTS FOR MODERN FRONTEND ---
-
-@app.route('/api/nearby', methods=['GET'])
-def api_nearby():
-    lat = request.args.get('lat', '-26.2500')
-    lon = request.args.get('lon', '28.4333')
-    
-    cached = get_cached_results(lat=lat, lon=lon)
-    if cached:
-        return jsonify({"success": True, "data": cached})
-
-    search_types = [
-        {'type': 'police', 'filter': 'police'},
-        {'type': 'hospital', 'filter': 'hospital'},
-        {'type': 'library', 'filter': 'education'},
-        {'type': 'school', 'filter': 'education'},
-        {'type': 'university', 'filter': 'education'},
-        {'type': 'taxi_stand', 'filter': 'transport'}
-    ]
-    
-    all_results = []
-    for item in search_types:
-        url = f"https://maps.googleapis.com/maps/api/place/nearbysearch/json?location={lat},{lon}&rankby=distance&type={item['type']}&key={API_KEY}"
-        response = requests.get(url).json()
-
-        if "results" in response:
-            for place in response["results"][:3]:
-                photo_ref = place.get('photos', [{}])[0].get('photo_reference')
-                img_url = f"https://maps.googleapis.com/maps/api/place/photo?maxwidth=400&photoreference={photo_ref}&key={API_KEY}" if photo_ref else "https://via.placeholder.com/400"
-                is_open = place.get('opening_hours', {}).get('open_now')
-                
-                all_results.append({
-                    "title": place.get('name'),
-                    "category": item['filter'], 
-                    "image": img_url,
-                    "desc": place.get('vicinity', 'Nearby service'),
-                    "lat": place['geometry']['location']['lat'],
-                    "lon": place['geometry']['location']['lng'],
-                    "is_open": is_open,
-                    "place_id": place.get('place_id')
-                })
-    
-    cache_results(all_results, lat=lat, lon=lon)
-    return jsonify({"success": True, "data": all_results})
-
-@app.route('/api/search', methods=['GET'])
-def api_search():
-    query = request.args.get('q')
-    lat = request.args.get('lat', '-26.2500')
-    lon = request.args.get('lon', '28.4333')
-
-    if not query:
-        return jsonify({"success": False, "error": "Query parameter 'q' is required"})
-
-    cached = get_cached_results(query=query)
-    if cached:
-        return jsonify({"success": True, "data": cached})
-
-    url = f"https://maps.googleapis.com/maps/api/place/textsearch/json?query={query}&location={lat},{lon}&radius=10000&key={API_KEY}"
-    response = requests.get(url).json()
-    
-    search_results = []
-    if "results" in response:
-        for place in response["results"]:
-            photo_ref = place.get('photos', [{}])[0].get('photo_reference')
-            img_url = f"https://maps.googleapis.com/maps/api/place/photo?maxwidth=400&photoreference={photo_ref}&key={API_KEY}" if photo_ref else "https://via.placeholder.com/400"
-            is_open = place.get('opening_hours', {}).get('open_now')
-
-            search_results.append({
-                "title": place.get('name'),
-                "category": "search-result",
-                "image": img_url,
-                "desc": place.get('formatted_address'),
-                "lat": place['geometry']['location']['lat'],
-                "lon": place['geometry']['location']['lng'],
-                "is_open": is_open,
-                "place_id": place.get('place_id')
-            })
-    
-    cache_results(search_results, query=query)
-    return jsonify({"success": True, "data": search_results})
+    return app
 
 if __name__ == '__main__':
+    app = create_app()
     app.run(debug=True, host='0.0.0.0')
