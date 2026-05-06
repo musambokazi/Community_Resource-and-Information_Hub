@@ -1,139 +1,168 @@
-// Function to get high-accuracy location and reload the page
-function findNearby() {
-    if (!navigator.geolocation) {
-        alert("Geolocation is not supported by your browser.");
-        return;
-    }
+/**
+ * Pure Vanilla JS Interactions
+ * Emil Kowalski physics, A11y, and DOM manipulation without any frameworks.
+ */
 
-    navigator.geolocation.getCurrentPosition(
-        (pos) => {
-            const lat = pos.coords.latitude;
-            const lon = pos.coords.longitude;
-            window.location.href = `/?lat=${lat}&lon=${lon}`;
-        },
-        (err) => {
-            // This is the "Fallback" if GPS fails
-            alert("Location blocked. Using default area (Springs). Please allow location in browser settings.");
-            window.location.href = `/?lat=-26.2500&lon=28.4333`;
-        },
-        { enableHighAccuracy: true, timeout: 5000 }
-    );
-}
-
-// Category Filter Function
-function filterSelection(c, btn) {
-    var x = document.getElementsByClassName("card");
+document.addEventListener('DOMContentLoaded', () => {
     
-    // Manage active state on buttons if btn is passed
-    if (btn) {
-        var btns = document.getElementsByClassName("filter-btn");
-        for (var j = 0; j < btns.length; j++) {
-            btns[j].classList.remove("active");
-        }
-        btn.classList.add("active");
-    }
+    const searchInput = document.getElementById('search-input');
+    const searchBtn = document.getElementById('search-btn');
+    const locationBtn = document.getElementById('location-btn');
+    const filterBtns = document.querySelectorAll('.filter-btn');
+    const grid = document.getElementById('results-grid');
+    const spinner = document.getElementById('loading-spinner');
 
-    var filterC = c;
-    if (c == "all") filterC = "";
-    
-    for (var i = 0; i < x.length; i++) {
-        x[i].style.display = "none"; 
-        if (c === "all") {
-            // Show only nearest items for each category on "All" page
-            if (x[i].className.indexOf("is-nearest") > -1 || x[i].className.indexOf("search-result") > -1) {
-                x[i].style.display = "flex"; 
-            }
-        } else {
-            // Specific category view: show all items matching category
-            if (x[i].className.indexOf(filterC) > -1) {
-                x[i].style.display = "flex"; 
-            }
-        }
-    }
-}
+    // -- Event Listeners --
 
-// Handle Enter key on search input
-document.getElementById('search-input').addEventListener('keydown', function(event) {
-    if (event.key === 'Enter') {
-        event.preventDefault(); // Prevent form submission if it were in a form
-        searchSpecificPlace();
-    }
-});
-
-function searchSpecificPlace() {
-    const query = document.getElementById('search-input').value;
-    if (query) {
-        // We get your location first so the search is local to you
-        navigator.geolocation.getCurrentPosition((pos) => {
-            const lat = pos.coords.latitude;
-            const lon = pos.coords.longitude;
-            window.location.href = `/find_specific?name=${query}&lat=${lat}&lon=${lon}`;
+    if (searchBtn && searchInput) {
+        searchBtn.addEventListener('click', () => executeSearch(searchInput.value));
+        searchInput.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') executeSearch(searchInput.value);
         });
     }
-}
 
-const toggleBtn = document.getElementById('theme-toggle');
-const themeIcon = toggleBtn.querySelector('i');
-
-// 1. Function to set the theme
-function setTheme(theme) {
-    document.documentElement.setAttribute('data-theme', theme);
-    localStorage.setItem('theme', theme); // Remembers for next time
-    
-    // Update icon
-    if (theme === 'dark') {
-        themeIcon.classList.replace('ti-moon', 'ti-sun');
-    } else {
-        themeIcon.classList.replace('ti-sun', 'ti-moon');
-    }
-}
-
-// 2. Check Device Settings & Local Storage on Load
-const savedTheme = localStorage.getItem('theme');
-const systemDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
-
-if (savedTheme) {
-    setTheme(savedTheme);
-} else if (systemDark) {
-    setTheme('dark');
-}
-
-// 3. Handle the Click
-toggleBtn.addEventListener('click', () => {
-    const currentTheme = document.documentElement.getAttribute('data-theme');
-    const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
-    setTheme(newTheme);
-});
-
-// 4. Listen for System Changes (Optional but cool)
-window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', e => {
-    if (!localStorage.getItem('theme')) { // Only change if user hasn't manualy picked
-        setTheme(e.matches ? 'dark' : 'light');
-    }
-});
-
-// Auto-scroll to results OR trigger initial location OR handle refresh
-window.addEventListener('DOMContentLoaded', () => {
-    const urlParams = new URLSearchParams(window.location.search);
-    const isReload = performance.getEntriesByType('navigation')[0].type === 'reload';
-
-    // If it's a manual refresh/reload, go back to the clean front page
-    if (isReload && window.location.search) {
-        window.location.href = '/';
-        return;
+    if (locationBtn) {
+        locationBtn.addEventListener('click', findNearby);
     }
 
-    // If we have coordinates (and NOT a reload), scroll to results
-    if (urlParams.has('lat') && urlParams.has('lon')) {
-        const resultsSection = document.querySelector('.resource-grid');
-        if (resultsSection) {
-            resultsSection.scrollIntoView({ behavior: 'smooth' });
+    filterBtns.forEach(btn => {
+        btn.addEventListener('click', (e) => {
+            // UI State
+            filterBtns.forEach(b => {
+                b.classList.remove('active');
+                b.setAttribute('aria-pressed', 'false');
+            });
+            const target = e.currentTarget;
+            target.classList.add('active');
+            target.setAttribute('aria-pressed', 'true');
+            
+            // Re-fetch based on filter
+            if (navigator.geolocation) {
+                // In a real app we'd filter cached data, but for demo we re-fetch location
+                findNearby(); 
+            }
+        });
+    });
+
+    // -- Favorite Button Delegation (For Dynamic Elements) --
+    grid.addEventListener('click', (e) => {
+        const favBtn = e.target.closest('.favorite-btn');
+        if (favBtn) {
+            e.stopPropagation(); // Prevent opening map
+            const icon = favBtn.querySelector('i');
+            
+            // Toggle state
+            const isPressed = favBtn.getAttribute('aria-pressed') === 'true';
+            favBtn.setAttribute('aria-pressed', !isPressed);
+            
+            icon.classList.toggle('text-yellow-400');
+            icon.classList.toggle('fill-yellow-400');
+            
+            // Micro-animation trigger via class manipulation
+            favBtn.style.transform = 'scale(1.2)';
+            setTimeout(() => favBtn.style.transform = 'scale(1)', 150);
         }
-    } 
-    // If we are on the home page and NO coordinates are present, trigger findNearby
-    else if (window.location.pathname === '/' || window.location.pathname === '/find_specific') {
-        if (!urlParams.has('lat')) {
-             findNearby();
+    });
+
+    // -- Keyboard Navigation for Grid --
+    grid.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') {
+            const card = e.target.closest('article');
+            if (card) {
+                card.click();
+            }
         }
+    });
+
+    // -- Core Functions --
+
+    async function findNearby() {
+        if (navigator.geolocation) {
+            showLoading();
+            navigator.geolocation.getCurrentPosition(
+                async (position) => {
+                    const lat = position.coords.latitude;
+                    const lon = position.coords.longitude;
+                    await fetchAndRender(`/api/nearby?lat=${lat}&lon=${lon}`);
+                },
+                (error) => {
+                    console.error("Geolocation error:", error);
+                    hideLoading();
+                    grid.innerHTML = '<p class="text-center text-red-400 col-span-full">Unable to retrieve location.</p>';
+                }
+            );
+        } else {
+            alert("Geolocation is not supported by your browser.");
+        }
+    }
+
+    async function executeSearch(query) {
+        if (!query.trim()) return;
+        showLoading();
+        await fetchAndRender(`/api/search?q=${encodeURIComponent(query)}`);
+    }
+
+    async function fetchAndRender(url) {
+        try {
+            const res = await fetch(url);
+            const data = await res.json();
+            
+            hideLoading();
+            grid.innerHTML = '';
+
+            if (data.success && data.data && data.data.length > 0) {
+                // Determine active filter
+                const activeFilter = document.querySelector('.filter-btn.active').dataset.filter;
+                let results = data.data;
+                if (activeFilter !== 'all') {
+                    results = results.filter(r => r.category === activeFilter);
+                }
+
+                if (results.length === 0) {
+                    grid.innerHTML = '<p class="text-center text-zinc-400 col-span-full py-12">No resources match this filter.</p>';
+                    return;
+                }
+
+                results.forEach((resource, idx) => {
+                    const delay = idx * 0.05; // Staggered delay
+                    const cardHTML = `
+                        <article tabindex="0" aria-label="Resource: ${resource.title}" class="glass-card rounded-3xl p-5 flex flex-col h-full spring-hover cursor-pointer opacity-0" style="animation: fadeInUp 0.6s cubic-bezier(0.175, 0.885, 0.32, 1.275) ${delay}s forwards;" onclick="window.open('https://www.google.com/maps/dir/?api=1&destination=${resource.lat},${resource.lon}', '_blank')">
+                            <div class="relative w-full h-48 rounded-2xl overflow-hidden mb-4 shrink-0 bg-zinc-800">
+                                <img src="${resource.image}" alt="Photo of ${resource.title}" loading="lazy" decoding="async" class="w-full h-full object-cover transition-transform duration-500 card-img">
+                                <button class="favorite-btn active-spring absolute top-3 right-3 p-2 bg-black/40 backdrop-blur-md rounded-full text-zinc-400 hover:text-yellow-400 transition-colors z-10 focus:outline-none focus:ring-2 focus:ring-primary" aria-label="Add ${resource.title} to favorites" aria-pressed="false">
+                                    <i class="ti ti-star" aria-hidden="true"></i>
+                                </button>
+                            </div>
+                            <h2 class="text-xl font-semibold tracking-tight mb-2 line-clamp-2 text-foreground">${resource.title}</h2>
+                            <div class="flex items-center gap-2 mb-3">
+                                <span class="flex items-center gap-1.5 px-3 py-1 rounded-full bg-background border border-border text-xs font-medium">
+                                    <div class="w-2 h-2 rounded-full ${resource.is_open ? 'bg-green-500' : 'bg-red-500'}" aria-hidden="true"></div>
+                                    ${resource.is_open ? 'Open Now' : 'Closed'}
+                                </span>
+                            </div>
+                            <p class="text-zinc-400 text-sm mb-6 flex-grow leading-relaxed line-clamp-3">${resource.desc}</p>
+                        </article>
+                    `;
+                    grid.insertAdjacentHTML('beforeend', cardHTML);
+                });
+            } else {
+                grid.innerHTML = '<p class="text-center text-zinc-400 col-span-full py-12">No resources found.</p>';
+            }
+        } catch (err) {
+            console.error("Fetch error:", err);
+            hideLoading();
+            grid.innerHTML = '<p class="text-center text-red-400 col-span-full py-12">Failed to load resources. Please try again.</p>';
+        }
+    }
+
+    function showLoading() {
+        grid.innerHTML = '';
+        spinner.classList.remove('hidden');
+        spinner.classList.add('flex');
+    }
+
+    function hideLoading() {
+        spinner.classList.add('hidden');
+        spinner.classList.remove('flex');
     }
 });
