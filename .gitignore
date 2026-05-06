@@ -1,6 +1,46 @@
+# Environment Variables
 .env
+.env.local
+.env.*.local
+
+# Python / Flask
 __pycache__/
-*.db
+*.py[cod]
+*$py.class
 .venv/
+venv/
+ENV/
+env.bak/
+venv.bak/
+*.db
+*.sqlite3
 server.log
 nohup.out
+.pytest_cache/
+.coverage
+htmlcov/
+instance/
+.webassets-cache
+
+# Node / Vite / React (Frontend)
+node_modules/
+dist/
+dist-ssr/
+*.local
+.npm/
+
+# IDE / OS
+.vscode/
+.idea/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db

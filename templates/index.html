@@ -13,8 +13,8 @@
     <div class="blob-bg blob-2"></div>
     
     <nav class="navbar">
-        <a href="/" class="logo" style="text-decoration: none; color: inherit; display: flex; align-items: center; gap: 0.5rem;">
-            <i class="ti ti-heart-handshake"></i>
+        <a href="/" class="logo" style="text-decoration: none; display: flex; align-items: center; gap: 0.5rem;">
+            <i class="ti ti-heart-handshake" style="color: var(--primary);"></i>
             <span>Community Hub</span>
         </a>
         <div style="display: flex; gap: 1rem; align-items: center;">
@@ -58,34 +58,134 @@
 
     <main class="resource-grid">
         {% for resource in items %}
-        <article class="card {{ resource.category }} {% if resource.is_nearest %}is-nearest{% endif %}" onclick="window.location.href='/details/{{ resource.place_id }}'" style="cursor: pointer; position: relative;">
-            <div class="card-img-wrapper" style="width: 100%; height: 180px; overflow: hidden; border-radius: 12px;">
-                <img src="{{ resource.image }}" alt="{{ resource.title }}" style="width: 100%; height: 100%; object-fit: cover;">
+        <article class="card {{ resource.category }} {% if resource.is_nearest %}is-nearest{% endif %}" onclick="window.location.href='/details/{{ resource.place_id }}'">
+            <div class="card-img-wrapper">
+                <img src="{{ resource.image }}" alt="{{ resource.title }}">
             </div>
 
-            <div style="padding-top: 1rem; position: relative;">
-                <div style="display: flex; justify-content: flex-end; align-items: flex-start; margin-bottom: 0.5rem;">
-                    <button class="favorite-btn" onclick="event.stopPropagation(); toggleFavorite(this)" style="background: none; border: none; cursor: pointer; color: #94a3b8; font-size: 1.2rem; z-index: 2;">
-                        <i class="ti ti-star"></i>
-                    </button>
-                </div>
-                <h2>{{ resource.title }}</h2>
-                
-                <div class="status-indicator {{ resource.status_class }}" style="margin-bottom: 1rem; font-weight: 600; font-size: 0.9rem; display: flex; align-items: center; gap: 0.5rem;">
-                    <span>{{ "🟢" if resource.status == "Open Now" else "🔴" if resource.status == "Closed" else "⚪" }}</span>
-                    <span>{{ resource.status }}</span>
-                </div>
+            <button class="favorite-btn" onclick="event.stopPropagation(); toggleFavorite(this)">
+                <i class="ti ti-star"></i>
+            </button>
+            
+            <h2>{{ resource.title }}</h2>
+            
+            <div class="status-indicator {{ resource.status_class }}">
+                <span>{{ "🟢" if resource.status == "Open Now" else "🔴" if resource.status == "Closed" else "⚪" }}</span>
+                <span>{{ resource.status }}</span>
+            </div>
 
-                <p>{{ resource.desc }}</p>
-                <div style="display: flex; gap: 1rem; flex-wrap: wrap; position: relative; z-index: 2;">
-                    <a href="https://www.google.com/maps/dir/?api=1&destination={{ resource.lat }},{{ resource.lon }}" 
-                       target="_blank" class="btn-secondary" style="font-size: 0.9rem;" onclick="event.stopPropagation();"><i class="ti ti-map"></i> Directions</a>
-                    <span class="btn-secondary" style="font-size: 0.9rem; color: var(--primary);"><i class="ti ti-info-circle"></i> More Info</span>
-                </div>
+            <p>{{ resource.desc }}</p>
+            
+            <div class="card-actions">
+                <a href="https://www.google.com/maps/dir/?api=1&destination={{ resource.lat }},{{ resource.lon }}" 
+                   target="_blank" class="btn-secondary" onclick="event.stopPropagation();"><i class="ti ti-map"></i> Directions</a>
+                <span class="btn-secondary" style="color: var(--primary);"><i class="ti ti-info-circle"></i> More Info</span>
             </div>
         </article>
         {% endfor %}
     </main>
+        <section class="section-container">
+        <div class="section-header">
+            <h2>Why Use Community Hub?</h2>
+            <p>We believe finding essential services should be fast, reliable, and accessible to everyone.</p>
+        </div>
+        <div class="features-grid">
+            <div class="feature-card">
+                <div class="feature-icon-wrapper"><i class="ti ti-map-pin"></i></div>
+                <h3>Location-Aware</h3>
+                <p>Instantly find the nearest hospitals, police stations, and schools based on your real-time location.</p>
+            </div>
+            <div class="feature-card">
+                <div class="feature-icon-wrapper"><i class="ti ti-clock"></i></div>
+                <h3>Live Status</h3>
+                <p>Know exactly what's open right now. We pull live operating hours directly from verified sources.</p>
+            </div>
+            <div class="feature-card">
+                <div class="feature-icon-wrapper"><i class="ti ti-users"></i></div>
+                <h3>Community Driven</h3>
+                <p>Read reviews from locals, get accurate directions, and even contribute your own hidden gems.</p>
+            </div>
+        </div>
+    </section>
+
+    <section class="section-container" style="background: var(--card-bg); border-radius: 32px; padding: 5rem 5%;">
+        <div class="section-header">
+            <h2>Trusted by the Community</h2>
+            <p>See what your neighbors are saying about finding exactly what they needed.</p>
+        </div>
+        <div class="testimonials-grid">
+            <div class="testimonial-card">
+                <p class="testimonial-quote">"This app saved me when I needed an after-hours pharmacy. It showed me the only open one within a 10km radius immediately."</p>
+                <div class="testimonial-author">
+                    <img src="https://i.pravatar.cc/150?img=47" alt="Sarah J.">
+                    <div class="testimonial-author-info">
+                        <h4>Sarah J.</h4>
+                        <p>Local Resident</p>
+                    </div>
+                </div>
+            </div>
+            <div class="testimonial-card">
+                <p class="testimonial-quote">"Finding reliable public transport stops used to be a nightmare. Now I just check the map and I know exactly where to go."</p>
+                <div class="testimonial-author">
+                    <img src="https://i.pravatar.cc/150?img=11" alt="David M.">
+                    <div class="testimonial-author-info">
+                        <h4>David M.</h4>
+                        <p>Commuter</p>
+                    </div>
+                </div>
+            </div>
+            <div class="testimonial-card">
+                <p class="testimonial-quote">"As a new mom, knowing the exact distance to the nearest pediatrician with real reviews gives me so much peace of mind."</p>
+                <div class="testimonial-author">
+                    <img src="https://i.pravatar.cc/150?img=5" alt="Emily R.">
+                    <div class="testimonial-author-info">
+                        <h4>Emily R.</h4>
+                        <p>New Parent</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section class="section-container">
+        <div class="section-header">
+            <h2>Frequently Asked Questions</h2>
+            <p>Got questions? We've got answers.</p>
+        </div>
+        <div class="faq-container">
+            <div class="faq-item">
+                <button class="faq-question">How accurate is the location data? <i class="ti ti-chevron-down"></i></button>
+                <div class="faq-answer">
+                    <p>We use the official Google Maps API to fetch real-time location data, ensuring that the addresses, distances, and operating hours are as accurate and up-to-date as possible.</p>
+                </div>
+            </div>
+            <div class="faq-item">
+                <button class="faq-question">Is this service completely free? <i class="ti ti-chevron-down"></i></button>
+                <div class="faq-answer">
+                    <p>Yes, Community Hub is completely free for all users. Our goal is to make essential local information accessible to everyone without barriers.</p>
+                </div>
+            </div>
+            <div class="faq-item">
+                <button class="faq-question">Can I add a place that is missing? <i class="ti ti-chevron-down"></i></button>
+                <div class="faq-answer">
+                    <p>Absolutely! If you create an account and log in, you can suggest new community resources. Once verified, they will appear on the map for everyone.</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section class="section-container">
+        <div class="cta-section">
+            <h2>Ready to explore your community?</h2>
+            <p>Join thousands of others discovering local resources and helping the community thrive.</p>
+            {% if not user %}
+                <a href="/login" class="btn-primary inverse" style="text-decoration: none; display: inline-block;">Create Free Account</a>
+            {% else %}
+                <button onclick="findNearby()" class="btn-primary inverse">Find Nearby Places</button>
+            {% endif %}
+        </div>
+    </section>
+
     <footer class="main-footer">
         <div class="footer-content">
             <div class="footer-section brand">
@@ -100,8 +200,8 @@
                 <ul>
                     <li><a href="/">Home</a></li>
                     <li><a href="/login">Account</a></li>
-                    <li><a href="#">Privacy Policy</a></li>
-                    <li><a href="#">Terms of Service</a></li>
+                    <li><a href="/terms">Terms of Service</a></li>
+                    <li><a href="/privacy">Privacy Policy</a></li>
                 </ul>
             </div>
             <div class="footer-section social">
@@ -138,6 +238,23 @@
                 btn.style.color = '#94a3b8'; // Muted
             }
         }
+        // FAQ Accordion
+        document.querySelectorAll('.faq-question').forEach(button => {
+            button.addEventListener('click', () => {
+                const faqItem = button.parentElement;
+                const isActive = faqItem.classList.contains('active');
+                
+                // Close all other FAQs
+                document.querySelectorAll('.faq-item').forEach(item => {
+                    item.classList.remove('active');
+                });
+
+                // Toggle current FAQ
+                if (!isActive) {
+                    faqItem.classList.add('active');
+                }
+            });
+        });
     </script>
 </body>
 </html>

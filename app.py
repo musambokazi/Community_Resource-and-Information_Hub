@@ -1,4 +1,5 @@
-from flask import Flask, render_template, request, redirect, session, url_for
+from flask import Flask, render_template, request, redirect, session, url_for, jsonify
+from flask_cors import CORS
 import sqlite3
 import requests
 import json
@@ -23,6 +24,7 @@ if os.path.exists('.env'):
                 os.environ[key] = value
 
 app = Flask(__name__)
+CORS(app) # Enable CORS for the React frontend
 app.secret_key = os.environ.get("FLASK_SECRET_KEY", "fallback_secret_key_for_dev")
 API_KEY = os.environ.get("GOOGLE_MAPS_API_KEY")
 
@@ -282,6 +284,96 @@ def add_resource():
         conn.commit()
         conn.close()
     return redirect('/')
+
+@app.route('/terms')
+def terms():
+    return render_template('terms.html')
+
+@app.route('/privacy')
+def privacy():
+    return render_template('privacy.html')
+
+# --- API ENDPOINTS FOR MODERN FRONTEND ---
+
+@app.route('/api/nearby', methods=['GET'])
+def api_nearby():
+    lat = request.args.get('lat', '-26.2500')
+    lon = request.args.get('lon', '28.4333')
+    
+    cached = get_cached_results(lat=lat, lon=lon)
+    if cached:
+        return jsonify({"success": True, "data": cached})
+
+    search_types = [
+        {'type': 'police', 'filter': 'police'},
+        {'type': 'hospital', 'filter': 'hospital'},
+        {'type': 'library', 'filter': 'education'},
+        {'type': 'school', 'filter': 'education'},
+        {'type': 'university', 'filter': 'education'},
+        {'type': 'taxi_stand', 'filter': 'transport'}
+    ]
+    
+    all_results = []
+    for item in search_types:
+        url = f"https://maps.googleapis.com/maps/api/place/nearbysearch/json?location={lat},{lon}&rankby=distance&type={item['type']}&key={API_KEY}"
+        response = requests.get(url).json()
+
+        if "results" in response:
+            for place in response["results"][:3]:
+                photo_ref = place.get('photos', [{}])[0].get('photo_reference')
+                img_url = f"https://maps.googleapis.com/maps/api/place/photo?maxwidth=400&photoreference={photo_ref}&key={API_KEY}" if photo_ref else "https://via.placeholder.com/400"
+                is_open = place.get('opening_hours', {}).get('open_now')
+                
+                all_results.append({
+                    "title": place.get('name'),
+                    "category": item['filter'], 
+                    "image": img_url,
+                    "desc": place.get('vicinity', 'Nearby service'),
+                    "lat": place['geometry']['location']['lat'],
+                    "lon": place['geometry']['location']['lng'],
+                    "is_open": is_open,
+                    "place_id": place.get('place_id')
+                })
+    
+    cache_results(all_results, lat=lat, lon=lon)
+    return jsonify({"success": True, "data": all_results})
+
+@app.route('/api/search', methods=['GET'])
+def api_search():
+    query = request.args.get('q')
+    lat = request.args.get('lat', '-26.2500')
+    lon = request.args.get('lon', '28.4333')
+
+    if not query:
+        return jsonify({"success": False, "error": "Query parameter 'q' is required"})
+
+    cached = get_cached_results(query=query)
+    if cached:
+        return jsonify({"success": True, "data": cached})
+
+    url = f"https://maps.googleapis.com/maps/api/place/textsearch/json?query={query}&location={lat},{lon}&radius=10000&key={API_KEY}"
+    response = requests.get(url).json()
+    
+    search_results = []
+    if "results" in response:
+        for place in response["results"]:
+            photo_ref = place.get('photos', [{}])[0].get('photo_reference')
+            img_url = f"https://maps.googleapis.com/maps/api/place/photo?maxwidth=400&photoreference={photo_ref}&key={API_KEY}" if photo_ref else "https://via.placeholder.com/400"
+            is_open = place.get('opening_hours', {}).get('open_now')
+
+            search_results.append({
+                "title": place.get('name'),
+                "category": "search-result",
+                "image": img_url,
+                "desc": place.get('formatted_address'),
+                "lat": place['geometry']['location']['lat'],
+                "lon": place['geometry']['location']['lng'],
+                "is_open": is_open,
+                "place_id": place.get('place_id')
+            })
+    
+    cache_results(search_results, query=query)
+    return jsonify({"success": True, "data": search_results})
 
 if __name__ == '__main__':
     app.run(debug=True, host='0.0.0.0')
