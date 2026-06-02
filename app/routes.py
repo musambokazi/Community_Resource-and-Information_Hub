@@ -11,9 +11,9 @@ main = Blueprint('main', __name__)
 def get_cached(query=None, lat=None, lon=None):
     threshold = datetime.utcnow() - timedelta(hours=24)
     if query:
-        res = CachedResult.query.filter(CachedResult.query == query, CachedResult.timestamp > threshold).first()
+        res = db.session.query(CachedResult).filter(CachedResult.query == query, CachedResult.timestamp > threshold).first()
     else:
-        res = CachedResult.query.filter(
+        res = db.session.query(CachedResult).filter(
             db.func.round(CachedResult.lat, 3) == round(float(lat), 3),
             db.func.round(CachedResult.lon, 3) == round(float(lon), 3),
             CachedResult.query == None,
@@ -128,6 +128,32 @@ def login():
             return redirect('/')
         return "Invalid credentials", 401
     return render_template('login.html')
+
+@main.route('/signup', methods=['POST'])
+def signup():
+    username = request.form.get('username')
+    password = request.form.get('password')
+    if not username or not password:
+        return "Username and password required", 400
+    
+    existing = User.query.filter_by(username=username).first()
+    if existing:
+        return "Username already exists", 400
+        
+    hashed_pwd = generate_password_hash(password)
+    new_user = User(username=username, password=hashed_pwd)
+    db.session.add(new_user)
+    db.session.commit()
+    
+    session['user_id'] = new_user.id
+    session.pop('guest', None)
+    return redirect('/')
+
+@main.route('/guest')
+def guest():
+    session['guest'] = True
+    session.pop('user_id', None)
+    return redirect('/')
 
 @main.route('/logout')
 def logout():

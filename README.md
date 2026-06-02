@@ -43,7 +43,7 @@ Ensure you have the following installed:
 3. **Install Dependencies**
    Ensure your virtual environment is active, then run:
    ```bash
-   pip install flask requests pytest requests-mock werkzeug
+   pip install -r requirements.txt
    ```
 
 4. **Database Configuration**
@@ -64,7 +64,7 @@ Ensure you have the following installed:
 1. **Start the Flask Server**
    Ensure your `.venv` is activated, then start the server:
    ```bash
-   python3 app.py
+   python3 run.py
    ```
 
 2. **Access the Application**
@@ -80,11 +80,20 @@ pytest
 ## 📁 Project Structure
 ```
 /Community_Resource-and-Information_Hub
-├── app.py             # Main Flask Application & API logic
-├── init_db.py         # Database initialization script
+├── app/               # Application Package
+│   ├── __init__.py    # Factory and initialization
+│   ├── routes.py      # API logic and route handling
+│   ├── models.py      # Database models
+│   ├── extensions.py  # Flask extensions
+│   ├── static/        # CSS and JavaScript files
+│   └── templates/     # HTML templates
+├── run.py             # Main entry point to start the server
 ├── requirements.txt   # Project dependencies
-├── static/            # CSS and JavaScript files
-├── templates/         # HTML templates
+├── init_db.py         # Database initialization script
+├── config.py          # Configuration and secrets
+├── schema.sql         # SQL schema (legacy)
+├── static/            # Root static files (deployment)
+├── templates/         # Root templates (deployment)
 └── .gitignore         # Git configuration
 ```
 

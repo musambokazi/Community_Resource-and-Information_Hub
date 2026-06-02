@@ -1,0 +1,9 @@
+flask
+flask-sqlalchemy
+flask-limiter
+flask-talisman
+requests
+pytest
+requests-mock
+werkzeug
+python-dotenv
