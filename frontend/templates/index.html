@@ -1,0 +1,275 @@
+{% extends "base.html" %}
+
+{% block title %}Community Hub | Find Hospitals, Police & Services Near You{% endblock %}
+{% block meta_description %}Find hospitals, police stations, schools, and transport near you. Real-time operating hours and one-tap directions for your community in South Africa.{% endblock %}
+
+{% block content %}
+<main class="max-w-7xl mx-auto px-6 pt-24 pb-32">
+
+    {# ── Hero ─────────────────────────────────────────────────────────────── #}
+    <header class="text-center mb-16 stagger-fade-in">
+        <h1 class="text-5xl md:text-7xl font-extrabold tracking-tight mb-6 bg-gradient-to-br from-white to-zinc-500 bg-clip-text text-transparent">
+            Find What You Need,<br/>Right Now.
+        </h1>
+        <p class="text-lg md:text-xl text-zinc-400 max-w-2xl mx-auto font-medium">
+            Discover essential services, verify live operating hours, and navigate your neighbourhood with confidence.
+        </p>
+    </header>
+
+    {# ── Search Bar ───────────────────────────────────────────────────────── #}
+    <div class="w-full max-w-2xl mx-auto relative z-20 stagger-fade-in" style="animation-delay: 0.1s;" role="search">
+        <div class="flex items-center p-2 rounded-full backdrop-blur-xl border border-border bg-card search-bar-focus">
+            <div class="pl-4 pr-2 text-zinc-400" aria-hidden="true">
+                <i class="ti ti-search text-xl"></i>
+            </div>
+            <label for="search-input" class="sr-only">Search for community services</label>
+            <input type="text" id="search-input"
+                   placeholder="Search for hospitals, police, schools..."
+                   class="flex-1 bg-transparent border-none outline-none text-foreground placeholder-zinc-500 py-3 text-lg w-full"
+                   aria-label="Search for community services"
+                   autocomplete="off">
+            <button onclick="executeSearch()"
+                    class="bg-foreground text-background px-6 py-3 rounded-full font-semibold hover:bg-primary hover:text-white transition-transform active:scale-95 duration-200"
+                    aria-label="Search">
+                Search
+            </button>
+        </div>
+
+        <button onclick="findNearby()"
+                class="mt-6 mx-auto flex items-center gap-2 text-zinc-400 hover:text-foreground transition-colors font-medium text-sm"
+                aria-label="Use my current location to find nearby services">
+            <i class="ti ti-map-pin" aria-hidden="true"></i> Use My Current Location
+        </button>
+    </div>
+
+    {# ── Filter Pills ─────────────────────────────────────────────────────── #}
+    <div class="flex justify-center gap-3 flex-wrap mt-12 mb-16 stagger-fade-in" style="animation-delay: 0.2s;"
+         role="group" aria-label="Filter services by category">
+        <button class="filter-pill active px-5 py-2 rounded-full border border-border bg-card text-zinc-400 hover:text-white hover:border-primary transition-colors text-sm font-medium"
+                onclick="filterSelection('all')" data-filter="all">All</button>
+        <button class="filter-pill px-5 py-2 rounded-full border border-border bg-card text-zinc-400 hover:text-white hover:border-primary transition-colors text-sm font-medium"
+                onclick="filterSelection('hospital')" data-filter="hospital">Health</button>
+        <button class="filter-pill px-5 py-2 rounded-full border border-border bg-card text-zinc-400 hover:text-white hover:border-primary transition-colors text-sm font-medium"
+                onclick="filterSelection('transport')" data-filter="transport">Transport</button>
+        <button class="filter-pill px-5 py-2 rounded-full border border-border bg-card text-zinc-400 hover:text-white hover:border-primary transition-colors text-sm font-medium"
+                onclick="filterSelection('police')" data-filter="police">Emergency</button>
+        <button class="filter-pill px-5 py-2 rounded-full border border-border bg-card text-zinc-400 hover:text-white hover:border-primary transition-colors text-sm font-medium"
+                onclick="filterSelection('education')" data-filter="education">Education</button>
+    </div>
+
+    {# ── Loading Spinner ───────────────────────────────────────────────────── #}
+    <div id="loading-spinner" class="hidden justify-center items-center h-40" role="status" aria-label="Loading results">
+        <div class="w-10 h-10 border-4 border-primary border-t-transparent rounded-full animate-spin"></div>
+        <span class="sr-only">Loading…</span>
+    </div>
+
+    {# ── Error Banner ─────────────────────────────────────────────────────── #}
+    <div id="error-banner" class="hidden mb-8 px-4 py-3 rounded-lg text-sm font-medium bg-red-500/10 border border-red-500/30 text-red-400"
+         role="alert" aria-live="polite"></div>
+
+    {# ── Empty State ──────────────────────────────────────────────────────── #}
+    <div id="empty-state" class="hidden flex-col items-center justify-center py-24 text-zinc-500">
+        <i class="ti ti-map-search text-5xl mb-4" aria-hidden="true"></i>
+        <p class="text-lg font-medium">No results found</p>
+        <p class="text-sm mt-1">Try a different search or use your location.</p>
+    </div>
+
+    {# ── Results Grid ─────────────────────────────────────────────────────── #}
+    <div id="results-grid"
+         class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 stagger-fade-in"
+         style="animation-delay: 0.3s;"
+         aria-label="Search results"
+         aria-live="polite">
+        {# Server-rendered fallback for direct route hits #}
+        {% if items %}
+            {% for resource in items %}
+            <article class="glass-card rounded-3xl p-5 flex flex-col h-full spring-hover cursor-pointer"
+                     onclick="window.open('https://www.google.com/maps/dir/?api=1&destination={{ resource.lat }},{{ resource.lon }}', '_blank')"
+                     aria-label="{{ resource.title }}">
+                <div class="relative w-full h-48 rounded-2xl overflow-hidden mb-4 shrink-0">
+                    {% if resource.image %}
+                    <img src="{{ resource.image }}" alt="Photo of {{ resource.title }}"
+                         class="w-full h-full object-cover transition-transform duration-500 hover:scale-105"
+                         loading="lazy">
+                    {% else %}
+                    <div class="w-full h-full bg-zinc-800 flex items-center justify-center">
+                        <i class="ti ti-building-community text-4xl text-zinc-600" aria-hidden="true"></i>
+                    </div>
+                    {% endif %}
+                    <button class="absolute top-3 right-3 p-2 bg-black/40 backdrop-blur-md rounded-full text-zinc-400 hover:text-yellow-400 transition-colors z-10"
+                            onclick="event.stopPropagation(); toggleFavorite(this)"
+                            aria-label="Save {{ resource.title }} to favourites">
+                        <i class="ti ti-star" aria-hidden="true"></i>
+                    </button>
+                </div>
+                <h2 class="text-xl font-semibold tracking-tight mb-2 line-clamp-2">{{ resource.title }}</h2>
+                <div class="flex items-center gap-2 mb-3">
+                    <span class="flex items-center gap-1.5 px-3 py-1 rounded-full bg-background border border-border text-xs font-medium">
+                        <div class="w-2 h-2 rounded-full {% if resource.is_open %}bg-green-500{% else %}bg-red-500{% endif %}"
+                             aria-hidden="true"></div>
+                        {{ "Open Now" if resource.is_open else "Closed" }}
+                    </span>
+                </div>
+                <p class="text-zinc-400 text-sm mb-6 flex-grow leading-relaxed line-clamp-3">{{ resource.desc }}</p>
+            </article>
+            {% endfor %}
+        {% endif %}
+    </div>
+</main>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+    let allResults = [];
+    let activeFilter = 'all';
+
+    function toggleFavorite(btn) {
+        const icon = btn.querySelector('i');
+        icon.classList.toggle('text-yellow-400');
+        icon.classList.toggle('fill-yellow-400');
+        btn.setAttribute('aria-pressed', icon.classList.contains('text-yellow-400'));
+    }
+
+    function filterSelection(category) {
+        activeFilter = category;
+
+        // Update pill active state
+        document.querySelectorAll('.filter-pill').forEach(btn => {
+            const isActive = btn.dataset.filter === category;
+            btn.classList.toggle('border-primary', isActive);
+            btn.classList.toggle('text-white', isActive);
+            btn.classList.toggle('text-zinc-400', !isActive);
+        });
+
+        renderCards(
+            category === 'all'
+                ? allResults
+                : allResults.filter(r => r.category === category)
+        );
+    }
+
+    async function findNearby() {
+        if (!navigator.geolocation) return;
+        showLoading();
+        navigator.geolocation.getCurrentPosition(
+            async ({ coords }) => {
+                await fetchAndRender(`/api/nearby?lat=${coords.latitude}&lon=${coords.longitude}`);
+            },
+            () => showError("Unable to retrieve your location. Please allow location access.")
+        );
+    }
+
+    async function executeSearch() {
+        const query = document.getElementById('search-input').value.trim();
+        if (!query) return;
+        showLoading();
+        await fetchAndRender(`/api/search?q=${encodeURIComponent(query)}`);
+    }
+
+    // Allow Enter key to trigger search
+    document.getElementById('search-input').addEventListener('keydown', e => {
+        if (e.key === 'Enter') executeSearch();
+    });
+
+    async function fetchAndRender(url) {
+        hideError();
+        try {
+            const res = await fetch(url);
+            if (!res.ok) throw new Error(`HTTP ${res.status}`);
+            const data = await res.json();
+            hideLoading();
+            if (data.success && data.data) {
+                allResults = data.data;
+                filterSelection(activeFilter);
+            } else {
+                showError(data.error || "Something went wrong. Please try again.");
+            }
+        } catch (err) {
+            hideLoading();
+            showError("Network error. Please check your connection and try again.");
+            console.error(err);
+        }
+    }
+
+    function buildCard(resource, delay) {
+        const imgContent = resource.image
+            ? `<img src="${resource.image}" alt="Photo of ${escHtml(resource.title)}"
+                    class="w-full h-full object-cover transition-transform duration-500 hover:scale-105"
+                    loading="lazy">`
+            : `<div class="w-full h-full bg-zinc-800 flex items-center justify-center">
+                   <i class="ti ti-building-community text-4xl text-zinc-600" aria-hidden="true"></i>
+               </div>`;
+
+        const statusColor = resource.is_open ? 'bg-green-500' : 'bg-red-500';
+        const statusText  = resource.is_open ? 'Open Now' : 'Closed';
+
+        return `
+        <article class="glass-card rounded-3xl p-5 flex flex-col h-full spring-hover cursor-pointer"
+                 style="animation: fadeInUp 0.6s cubic-bezier(0.175,0.885,0.32,1.275) ${delay}s both;"
+                 onclick="window.open('https://www.google.com/maps/dir/?api=1&destination=${resource.lat},${resource.lon}', '_blank')"
+                 aria-label="${escHtml(resource.title)}">
+            <div class="relative w-full h-48 rounded-2xl overflow-hidden mb-4 shrink-0">
+                ${imgContent}
+                <button class="absolute top-3 right-3 p-2 bg-black/40 backdrop-blur-md rounded-full text-zinc-400 hover:text-yellow-400 transition-colors z-10"
+                        onclick="event.stopPropagation(); toggleFavorite(this)"
+                        aria-label="Save ${escHtml(resource.title)} to favourites"
+                        aria-pressed="false">
+                    <i class="ti ti-star" aria-hidden="true"></i>
+                </button>
+            </div>
+            <h2 class="text-xl font-semibold tracking-tight mb-2 line-clamp-2">${escHtml(resource.title)}</h2>
+            <div class="flex items-center gap-2 mb-3">
+                <span class="flex items-center gap-1.5 px-3 py-1 rounded-full bg-background border border-border text-xs font-medium">
+                    <div class="w-2 h-2 rounded-full ${statusColor}" aria-hidden="true"></div>
+                    ${statusText}
+                </span>
+            </div>
+            <p class="text-zinc-400 text-sm mb-6 flex-grow leading-relaxed line-clamp-3">${escHtml(resource.desc || '')}</p>
+        </article>`;
+    }
+
+    function renderCards(results) {
+        const grid = document.getElementById('results-grid');
+        const empty = document.getElementById('empty-state');
+
+        grid.innerHTML = '';
+        if (!results.length) {
+            empty.classList.remove('hidden');
+            empty.classList.add('flex');
+            return;
+        }
+        empty.classList.add('hidden');
+        empty.classList.remove('flex');
+        results.forEach((r, i) => grid.insertAdjacentHTML('beforeend', buildCard(r, i * 0.05)));
+    }
+
+    function showLoading() {
+        document.getElementById('results-grid').innerHTML = '';
+        document.getElementById('loading-spinner').classList.remove('hidden');
+        document.getElementById('loading-spinner').classList.add('flex');
+    }
+    function hideLoading() {
+        document.getElementById('loading-spinner').classList.add('hidden');
+        document.getElementById('loading-spinner').classList.remove('flex');
+    }
+    function showError(msg) {
+        const el = document.getElementById('error-banner');
+        el.textContent = msg;
+        el.classList.remove('hidden');
+    }
+    function hideError() {
+        document.getElementById('error-banner').classList.add('hidden');
+    }
+
+    // XSS protection: escape user-supplied / API data before innerHTML
+    function escHtml(str) {
+        if (!str) return '';
+        return String(str)
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;')
+            .replace(/'/g, '&#039;');
+    }
+</script>
+{% endblock %}

@@ -1,5 +1,12 @@
 User-agent: *
 Disallow: /login
 Disallow: /logout
+Disallow: /signup
+Disallow: /guest
+Disallow: /api/
+
 Allow: /
+Allow: /terms
+Allow: /privacy
+
 Sitemap: https://yourdomain.com/sitemap.xml

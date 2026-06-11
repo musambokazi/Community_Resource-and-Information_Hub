@@ -1,0 +1,139 @@
+{% extends "base.html" %}
+
+{% block title %}Log In or Sign Up | Community Hub{% endblock %}
+{% block meta_description %}Log in or create a free Community Hub account to find hospitals, police stations, schools, and transport near you.{% endblock %}
+{% block meta_robots %}noindex, nofollow{% endblock %}
+
+{% block content %}
+<main class="flex items-center justify-center min-h-[80vh] px-4">
+    <div class="w-full max-w-md">
+
+        {# ── Brand ─────────────────────────────────────────────────────────── #}
+        <div class="text-center mb-8">
+            <a href="/" class="inline-flex items-center gap-2 text-2xl font-bold tracking-tight hover:opacity-80 transition-opacity">
+                <span class="text-primary text-3xl" aria-hidden="true">✦</span>
+                Community Hub
+            </a>
+            <p class="mt-2 text-zinc-400 text-sm">Your neighbourhood, at a glance.</p>
+        </div>
+
+        {# ── Card ──────────────────────────────────────────────────────────── #}
+        <div class="glass-card rounded-3xl p-8 backdrop-blur-xl border border-border">
+
+            {# Error message from server #}
+            {% if error %}
+            <div class="mb-6 px-4 py-3 rounded-xl text-sm font-medium bg-red-500/10 border border-red-500/30 text-red-400"
+                 role="alert" aria-live="polite">
+                <i class="ti ti-alert-circle mr-2" aria-hidden="true"></i>{{ error }}
+            </div>
+            {% endif %}
+
+            {# ── Tabs ────────────────────────────────────────────────────── #}
+            <div class="flex gap-1 mb-8 p-1 rounded-full bg-zinc-900/60 border border-border"
+                 role="tablist" aria-label="Authentication options">
+                <button id="login-tab" role="tab" aria-selected="true" aria-controls="login-panel"
+                        class="tab-btn flex-1 py-2.5 rounded-full text-sm font-semibold transition-all bg-zinc-800 text-white"
+                        onclick="showForm('login')">Log In</button>
+                <button id="signup-tab" role="tab" aria-selected="false" aria-controls="signup-panel"
+                        class="tab-btn flex-1 py-2.5 rounded-full text-sm font-semibold transition-all text-zinc-400 hover:text-white"
+                        onclick="showForm('signup')">Sign Up</button>
+            </div>
+
+            {# ── Login Form ──────────────────────────────────────────────── #}
+            <div id="login-panel" role="tabpanel" aria-labelledby="login-tab">
+                <form action="/login" method="POST" class="space-y-4" novalidate>
+                    {# CSRF token injected automatically by Flask-WTF #}
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+                    <div>
+                        <label for="login-username" class="sr-only">Username</label>
+                        <input type="text" id="login-username" name="username"
+                               placeholder="Username" required autocomplete="username"
+                               class="w-full px-4 py-3 rounded-2xl border border-border bg-zinc-900/60 text-foreground placeholder-zinc-500 outline-none focus:border-primary/60 focus:ring-2 focus:ring-primary/20 transition-all">
+                    </div>
+                    <div>
+                        <label for="login-password" class="sr-only">Password</label>
+                        <input type="password" id="login-password" name="password"
+                               placeholder="Password" required autocomplete="current-password"
+                               class="w-full px-4 py-3 rounded-2xl border border-border bg-zinc-900/60 text-foreground placeholder-zinc-500 outline-none focus:border-primary/60 focus:ring-2 focus:ring-primary/20 transition-all">
+                    </div>
+                    <button type="submit"
+                            class="w-full py-3 rounded-2xl bg-primary text-white font-semibold hover:bg-orange-400 active:scale-95 transition-all duration-200">
+                        Welcome Back
+                    </button>
+                </form>
+            </div>
+
+            {# ── Signup Form ─────────────────────────────────────────────── #}
+            <div id="signup-panel" role="tabpanel" aria-labelledby="signup-tab" class="hidden">
+                <form action="/signup" method="POST" class="space-y-4" novalidate>
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+                    <div>
+                        <label for="signup-username" class="sr-only">Username</label>
+                        <input type="text" id="signup-username" name="username"
+                               placeholder="Username" required autocomplete="username"
+                               class="w-full px-4 py-3 rounded-2xl border border-border bg-zinc-900/60 text-foreground placeholder-zinc-500 outline-none focus:border-primary/60 focus:ring-2 focus:ring-primary/20 transition-all">
+                    </div>
+                    <div>
+                        <label for="signup-password" class="sr-only">Password</label>
+                        <input type="password" id="signup-password" name="password"
+                               placeholder="Password (min 8 characters)" required autocomplete="new-password"
+                               minlength="8"
+                               class="w-full px-4 py-3 rounded-2xl border border-border bg-zinc-900/60 text-foreground placeholder-zinc-500 outline-none focus:border-primary/60 focus:ring-2 focus:ring-primary/20 transition-all">
+                    </div>
+                    <button type="submit"
+                            class="w-full py-3 rounded-2xl bg-primary text-white font-semibold hover:bg-orange-400 active:scale-95 transition-all duration-200">
+                        Create Account
+                    </button>
+                </form>
+            </div>
+
+            {# ── Guest access ────────────────────────────────────────────── #}
+            <div class="mt-6 text-center">
+                <a href="/guest" class="text-zinc-500 hover:text-white transition-colors text-sm font-medium">
+                    Continue as guest <i class="ti ti-arrow-right" aria-hidden="true"></i>
+                </a>
+            </div>
+        </div>
+
+        <p class="mt-6 text-center text-zinc-600 text-xs">
+            By continuing you agree to our
+            <a href="/terms" class="underline hover:text-zinc-400">Terms</a> and
+            <a href="/privacy" class="underline hover:text-zinc-400">Privacy Policy</a>.
+        </p>
+    </div>
+</main>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+    function showForm(type) {
+        const isLogin = type === 'login';
+        document.getElementById('login-panel').classList.toggle('hidden', !isLogin);
+        document.getElementById('signup-panel').classList.toggle('hidden', isLogin);
+
+        const loginTab  = document.getElementById('login-tab');
+        const signupTab = document.getElementById('signup-tab');
+
+        loginTab.setAttribute('aria-selected', isLogin);
+        signupTab.setAttribute('aria-selected', !isLogin);
+
+        [loginTab, signupTab].forEach(btn => {
+            btn.classList.remove('bg-zinc-800', 'text-white', 'text-zinc-400', 'hover:text-white');
+        });
+
+        const activeBtn   = isLogin ? loginTab : signupTab;
+        const inactiveBtn = isLogin ? signupTab : loginTab;
+        activeBtn.classList.add('bg-zinc-800', 'text-white');
+        inactiveBtn.classList.add('text-zinc-400', 'hover:text-white');
+    }
+
+    // If server returned an error for a signup attempt, show signup tab
+    {% if error and request.form.get('username') and not request.form.get('guest') %}
+        {% if request.path == '/signup' or request.method == 'POST' %}
+        showForm('signup');
+        {% endif %}
+    {% endif %}
+</script>
+{% endblock %}

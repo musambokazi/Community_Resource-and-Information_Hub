@@ -1,35 +1,51 @@
-# Environment Variables
+# ── Secrets ───────────────────────────────────────────────────────────────────
 .env
 .env.local
 .env.*.local
 
-# Python / Flask
+# ── Python ────────────────────────────────────────────────────────────────────
 __pycache__/
 *.py[cod]
 *$py.class
+*.pyo
+
+# ── Virtual environments ──────────────────────────────────────────────────────
 .venv/
 venv/
 ENV/
+env/
 env.bak/
 venv.bak/
+
+# ── Database files ────────────────────────────────────────────────────────────
 *.db
 *.sqlite3
-server.log
+*.db~*
+
+# ── Logs ──────────────────────────────────────────────────────────────────────
+logs/
+*.log
 nohup.out
+server.log
+
+# ── Testing / Coverage ────────────────────────────────────────────────────────
 .pytest_cache/
 .coverage
 htmlcov/
+backend/.pytest_cache/
+
+# ── Flask / Alembic ───────────────────────────────────────────────────────────
 instance/
 .webassets-cache
+backend/migrations/versions/*.py
 
-# Node / Vite / React (Frontend)
+# ── Node / Frontend build ─────────────────────────────────────────────────────
 node_modules/
 dist/
 dist-ssr/
-*.local
 .npm/
 
-# IDE / OS
+# ── IDE / OS ──────────────────────────────────────────────────────────────────
 .vscode/
 .idea/
 *.suo
@@ -44,3 +60,17 @@ dist-ssr/
 .Trashes
 ehthumbs.db
 Thumbs.db
+
+# ── Legacy root-level files (moved to backend/ or nginx/) ─────────────────────
+# These are kept here in case they accidentally reappear at root
+/community_hub.conf
+/requirements.txt
+/config.py
+/run.py
+/gunicorn.conf.py
+/test_app.py
+/schema.sql
+/init_db.py
+/static/
+/templates/
+/app/
