@@ -8,7 +8,11 @@ class User(db.Model):
     password = db.Column(db.String(255), nullable=False)
 
     def __init__(self, username=None, password=None, **kwargs):
-        super().__init__(username=username, password=password, **kwargs)
+        if username is not None:
+            kwargs['username'] = username
+        if password is not None:
+            kwargs['password'] = password
+        super().__init__(**kwargs)
 
 class CachedResult(db.Model):
     __tablename__ = 'cached_results'
@@ -20,12 +24,14 @@ class CachedResult(db.Model):
     timestamp = db.Column(db.DateTime, default=datetime.utcnow)
 
     def __init__(self, query=None, lat=None, lon=None, results_json=None, timestamp=None, **kwargs):
-        super().__init__(
-            query=query,
-            lat=lat,
-            lon=lon,
-            results_json=results_json,
-            timestamp=timestamp,
-            **kwargs
-        )
-
+        if query is not None:
+            kwargs['query'] = query
+        if lat is not None:
+            kwargs['lat'] = lat
+        if lon is not None:
+            kwargs['lon'] = lon
+        if results_json is not None:
+            kwargs['results_json'] = results_json
+        if timestamp is not None:
+            kwargs['timestamp'] = timestamp
+        super().__init__(**kwargs)
