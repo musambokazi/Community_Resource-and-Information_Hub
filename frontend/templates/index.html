@@ -232,6 +232,13 @@
         if (openNowOnly) {
             filtered = filtered.filter(r => r.is_open);
         }
+        if (maxDistance && userOrigin) {
+            filtered = filtered.filter(r => {
+                if (!r.lat || !r.lon) return false;
+                const d = calculateDistance(userOrigin.lat, userOrigin.lon, parseFloat(r.lat), parseFloat(r.lon));
+                return d !== null && d <= maxDistance;
+            });
+        }
         renderCards(filtered);
     }
 
