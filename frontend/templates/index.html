@@ -119,10 +119,38 @@
 {% endblock %}
 
 {% block extra_scripts %}
+{% if google_maps_api_key %}
+<script src="https://maps.googleapis.com/maps/api/js?key={{ google_maps_api_key }}&libraries=places&callback=initAutocomplete" async defer></script>
+{% endif %}
 <script>
     let allResults = [];
     let activeFilter = 'all';
     let userOrigin = null; // {lat, lon}
+    let autocomplete;
+
+    function initAutocomplete() {
+        const input = document.getElementById('search-input');
+        if (!input || typeof google === 'undefined') return;
+        
+        autocomplete = new google.maps.places.Autocomplete(input, {
+            fields: ["geometry", "name"]
+        });
+
+        autocomplete.addListener('place_changed', async () => {
+            const place = autocomplete.getPlace();
+            if (!place.geometry || !place.geometry.location) {
+                executeSearch();
+                return;
+            }
+
+            const lat = place.geometry.location.lat();
+            const lon = place.geometry.location.lng();
+            userOrigin = { lat, lon };
+            
+            showLoading();
+            await fetchAndRender(`/api/nearby?lat=${lat}&lon=${lon}`);
+        });
+    }
 
     // Calculate distance between two lat/lon points in km using Haversine formula
     function calculateDistance(lat1, lon1, lat2, lon2) {
