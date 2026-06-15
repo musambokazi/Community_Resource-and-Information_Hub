@@ -6,6 +6,8 @@ class User(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     user_token = db.Column(db.String(120), nullable=False)
     place_id = db.Column(db.String(120), nullable=False)
+    resource_json = db.Column(db.Text, nullable=False)
+    timestamp = db.Column(db.DateTime, default=datetime.utcnow)
     username = db.Column(db.String(80), unique=True, nullable=False)
     password = db.Column(db.String(255), nullable=False)
 
