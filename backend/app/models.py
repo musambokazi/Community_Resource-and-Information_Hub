@@ -14,6 +14,10 @@ class User(db.Model):
             kwargs['password'] = password
         super().__init__(**kwargs)
 
+class Bookmark(db.Model):
+    __tablename__ = 'bookmarks'
+    id = db.Column(db.Integer, primary_key=True)
+
 class CachedResult(db.Model):
     __tablename__ = 'cached_results'
     id = db.Column(db.Integer, primary_key=True)
