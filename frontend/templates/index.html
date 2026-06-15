@@ -158,6 +158,8 @@
     let maxDistance = null;
     let userOrigin = null; // {lat, lon}
     let autocomplete;
+    let userToken = localStorage.getItem('userToken');
+    if (!userToken) { userToken = crypto.randomUUID(); localStorage.setItem('userToken', userToken); }
 
     function initAutocomplete() {
         const input = document.getElementById('search-input');
