@@ -229,6 +229,9 @@
         });
 
         let filtered = category === 'all' ? allResults : allResults.filter(r => r.category === category);
+        if (openNowOnly) {
+            filtered = filtered.filter(r => r.is_open);
+        }
         renderCards(filtered);
     }
 
