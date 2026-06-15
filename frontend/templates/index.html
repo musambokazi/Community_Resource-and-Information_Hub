@@ -257,6 +257,11 @@
         });
 
         let filtered = category === 'all' ? allResults : allResults.filter(r => r.category === category);
+        if (category === 'favorites') {
+            const res = await fetch(`/api/bookmarks?token=${userToken}`);
+            const data = await res.json();
+            if(data.success) { filtered = data.data; }
+        }
         if (openNowOnly) {
             filtered = filtered.filter(r => r.is_open);
         }
