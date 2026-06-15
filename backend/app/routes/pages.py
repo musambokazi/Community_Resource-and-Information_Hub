@@ -18,7 +18,9 @@ def home():
     user = _get_current_user()
     if not user and not session.get('guest'):
         return redirect('/login')
-    return render_template('index.html', user=user)
+    
+    google_maps_api_key = current_app.config.get('GOOGLE_MAPS_API_KEY')
+    return render_template('index.html', user=user, google_maps_api_key=google_maps_api_key)
 
 
 @pages.route('/terms')

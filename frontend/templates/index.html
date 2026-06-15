@@ -119,9 +119,37 @@
 {% endblock %}
 
 {% block extra_scripts %}
+{% if google_maps_api_key %}
+<script src="https://maps.googleapis.com/maps/api/js?key={{ google_maps_api_key }}&libraries=places&callback=initAutocomplete" async defer></script>
+{% endif %}
 <script>
     let allResults = [];
     let activeFilter = 'all';
+    let autocomplete;
+
+    function initAutocomplete() {
+        const input = document.getElementById('search-input');
+        if (!input || typeof google === 'undefined') return;
+        
+        autocomplete = new google.maps.places.Autocomplete(input, {
+            fields: ["geometry", "name"]
+        });
+
+        autocomplete.addListener('place_changed', async () => {
+            const place = autocomplete.getPlace();
+            if (!place.geometry || !place.geometry.location) {
+                // User pressed enter without selecting a place from the dropdown
+                executeSearch();
+                return;
+            }
+
+            const lat = place.geometry.location.lat();
+            const lon = place.geometry.location.lng();
+            
+            showLoading();
+            await fetchAndRender(`/api/nearby?lat=${lat}&lon=${lon}`);
+        });
+    }
 
     function toggleFavorite(btn) {
         const icon = btn.querySelector('i');
