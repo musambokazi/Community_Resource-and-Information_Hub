@@ -125,7 +125,7 @@
                     </div>
                     {% endif %}
                     <button class="absolute top-3 right-3 p-2 bg-black/40 backdrop-blur-md rounded-full text-zinc-400 hover:text-yellow-400 transition-colors z-10"
-                            onclick="event.stopPropagation(); toggleFavorite(this)"
+                            onclick="event.stopPropagation(); toggleFavorite(this, '${escHtml(resource.place_id || resource.title)}')"
                             aria-label="Save {{ resource.title }} to favourites">
                         <i class="ti ti-star" aria-hidden="true"></i>
                     </button>
