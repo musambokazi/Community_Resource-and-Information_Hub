@@ -181,6 +181,13 @@
 
     // Calculate distance between two lat/lon points in km using Haversine formula
     document.addEventListener('DOMContentLoaded', () => {
+        const distanceSelect = document.getElementById('distance-select');
+        if (distanceSelect) {
+            distanceSelect.addEventListener('change', (e) => {
+                maxDistance = e.target.value === 'any' ? null : parseInt(e.target.value);
+                filterSelection(activeFilter);
+            });
+        }
         const openNowToggle = document.getElementById('open-now-toggle');
         if (openNowToggle) {
             openNowToggle.addEventListener('change', (e) => {
