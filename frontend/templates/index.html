@@ -57,6 +57,21 @@
                 onclick="filterSelection('education')" data-filter="education">Education</button>
     </div>
 
+    {# ── View Toggle ──────────────────────────────────────────────────────── #}
+    <div class="flex justify-center mb-8 stagger-fade-in" style="animation-delay: 0.25s;">
+        <div class="bg-card border border-border p-1 rounded-full flex gap-1">
+            <button id="view-toggle-grid" class="px-6 py-2 rounded-full text-sm font-medium bg-primary text-white transition-all shadow-md" onclick="switchView('grid')">
+                <i class="ti ti-grid-dots mr-1"></i> Grid
+            </button>
+            <button id="view-toggle-map" class="px-6 py-2 rounded-full text-sm font-medium text-zinc-400 hover:text-white transition-all" onclick="switchView('map')">
+                <i class="ti ti-map mr-1"></i> Map
+            </button>
+        </div>
+    </div>
+
+    {# ── Map Container ────────────────────────────────────────────────────── #}
+    <div id="map-container" class="hidden w-full h-[500px] rounded-3xl overflow-hidden border border-border shadow-2xl mb-8 stagger-fade-in" style="animation-delay: 0.3s;" aria-label="Interactive map showing nearby services"></div>
+
     {# ── Loading Spinner ───────────────────────────────────────────────────── #}
     <div id="loading-spinner" class="hidden justify-center items-center h-40" role="status" aria-label="Loading results">
         <div class="w-10 h-10 border-4 border-primary border-t-transparent rounded-full animate-spin"></div>
@@ -119,9 +134,131 @@
 {% endblock %}
 
 {% block extra_scripts %}
+{% if google_maps_api_key %}
+<script src="https://maps.googleapis.com/maps/api/js?key={{ google_maps_api_key }}&libraries=places" defer></script>
+{% endif %}
 <script>
     let allResults = [];
     let activeFilter = 'all';
+    let currentView = 'grid';
+    let map = null;
+    let markers = [];
+    let infoWindow = null;
+
+    function switchView(view) {
+        currentView = view;
+        const btnGrid = document.getElementById('view-toggle-grid');
+        const btnMap = document.getElementById('view-toggle-map');
+        const gridContainer = document.getElementById('results-grid');
+        const mapContainer = document.getElementById('map-container');
+
+        if (view === 'grid') {
+            btnGrid.classList.add('bg-primary', 'text-white', 'shadow-md');
+            btnGrid.classList.remove('text-zinc-400');
+            btnMap.classList.remove('bg-primary', 'text-white', 'shadow-md');
+            btnMap.classList.add('text-zinc-400');
+            
+            mapContainer.classList.add('hidden');
+            gridContainer.classList.remove('hidden');
+            gridContainer.classList.add('grid');
+        } else {
+            btnMap.classList.add('bg-primary', 'text-white', 'shadow-md');
+            btnMap.classList.remove('text-zinc-400');
+            btnGrid.classList.remove('bg-primary', 'text-white', 'shadow-md');
+            btnGrid.classList.add('text-zinc-400');
+            
+            gridContainer.classList.add('hidden');
+            gridContainer.classList.remove('grid');
+            mapContainer.classList.remove('hidden');
+            
+            if (!map) initMap();
+            else renderMapMarkers(activeFilter === 'all' ? allResults : allResults.filter(r => r.category === activeFilter));
+        }
+    }
+
+    function initMap() {
+        if (typeof google === 'undefined') return;
+        const mapContainer = document.getElementById('map-container');
+        map = new google.maps.Map(mapContainer, {
+            center: { lat: -26.2041, lng: 28.0473 }, // Default to Johannesburg
+            zoom: 12,
+            styles: [
+                { elementType: "geometry", stylers: [{ color: "#242f3e" }] },
+                { elementType: "labels.text.stroke", stylers: [{ color: "#242f3e" }] },
+                { elementType: "labels.text.fill", stylers: [{ color: "#746855" }] },
+                { featureType: "administrative.locality", elementType: "labels.text.fill", stylers: [{ color: "#d59563" }] },
+                { featureType: "poi", elementType: "labels.text.fill", stylers: [{ color: "#d59563" }] },
+                { featureType: "poi.park", elementType: "geometry", stylers: [{ color: "#263c3f" }] },
+                { featureType: "poi.park", elementType: "labels.text.fill", stylers: [{ color: "#6b9a76" }] },
+                { featureType: "road", elementType: "geometry", stylers: [{ color: "#38414e" }] },
+                { featureType: "road", elementType: "geometry.stroke", stylers: [{ color: "#212a37" }] },
+                { featureType: "road", elementType: "labels.text.fill", stylers: [{ color: "#9ca5b3" }] },
+                { featureType: "road.highway", elementType: "geometry", stylers: [{ color: "#746855" }] },
+                { featureType: "road.highway", elementType: "geometry.stroke", stylers: [{ color: "#1f2835" }] },
+                { featureType: "road.highway", elementType: "labels.text.fill", stylers: [{ color: "#f3d19c" }] },
+                { featureType: "transit", elementType: "geometry", stylers: [{ color: "#2f3948" }] },
+                { featureType: "transit.station", elementType: "labels.text.fill", stylers: [{ color: "#d59563" }] },
+                { featureType: "water", elementType: "geometry", stylers: [{ color: "#17263c" }] },
+                { featureType: "water", elementType: "labels.text.fill", stylers: [{ color: "#515c6d" }] },
+                { featureType: "water", elementType: "labels.text.stroke", stylers: [{ color: "#17263c" }] }
+            ],
+        });
+        infoWindow = new google.maps.InfoWindow();
+        renderMapMarkers(activeFilter === 'all' ? allResults : allResults.filter(r => r.category === activeFilter));
+    }
+
+    function renderMapMarkers(results) {
+        if (!map) return;
+        
+        markers.forEach(m => m.setMap(null));
+        markers = [];
+        
+        if (!results.length) return;
+
+        const bounds = new google.maps.LatLngBounds();
+
+        results.forEach(resource => {
+            const position = { lat: parseFloat(resource.lat), lng: parseFloat(resource.lon) };
+            bounds.extend(position);
+            
+            const marker = new google.maps.Marker({
+                position,
+                map,
+                title: resource.title,
+                icon: {
+                    path: google.maps.SymbolPath.CIRCLE,
+                    scale: 10,
+                    fillColor: resource.is_open ? '#22c55e' : '#ef4444',
+                    fillOpacity: 1,
+                    strokeColor: '#ffffff',
+                    strokeWeight: 2,
+                }
+            });
+            
+            marker.addListener('click', () => {
+                const statusColor = resource.is_open ? 'bg-green-500' : 'bg-red-500';
+                const statusText = resource.is_open ? 'Open Now' : 'Closed';
+                const content = '<div class="p-2 min-w-[200px]">' +
+                        '<h3 class="font-bold text-gray-900 mb-1">' + escHtml(resource.title) + '</h3>' +
+                        '<div class="flex items-center gap-1.5 mb-2">' +
+                            '<span class="inline-block w-2 h-2 rounded-full ' + statusColor + '"></span>' +
+                            '<span class="text-xs font-medium text-gray-700">' + statusText + '</span>' +
+                        '</div>' +
+                        '<a href="https://www.google.com/maps/dir/?api=1&destination=' + resource.lat + ',' + resource.lon + '" target="_blank" class="text-primary text-sm font-medium hover:underline">Get Directions</a>' +
+                    '</div>';
+                infoWindow.setContent(content);
+                infoWindow.open(map, marker);
+            });
+            
+            markers.push(marker);
+        });
+        
+        map.fitBounds(bounds);
+        
+        if (map.getZoom() > 16) {
+            map.setZoom(16);
+        }
+    }
 
     function toggleFavorite(btn) {
         const icon = btn.querySelector('i');
@@ -141,11 +278,14 @@
             btn.classList.toggle('text-zinc-400', !isActive);
         });
 
-        renderCards(
-            category === 'all'
+        const filtered = category === 'all'
                 ? allResults
-                : allResults.filter(r => r.category === category)
-        );
+                : allResults.filter(r => r.category === category);
+                
+        renderCards(filtered);
+        if (currentView === 'map') {
+            renderMapMarkers(filtered);
+        }
     }
 
     async function findNearby() {
