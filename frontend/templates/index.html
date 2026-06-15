@@ -227,7 +227,7 @@
         return R * c; // Distance in km
     }
 
-    function toggleFavorite(btn) {
+    async function toggleFavorite(btn, place_id) {
         const icon = btn.querySelector('i');
         icon.classList.toggle('text-yellow-400');
         icon.classList.toggle('fill-yellow-400');
