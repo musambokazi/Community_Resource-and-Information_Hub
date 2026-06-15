@@ -193,7 +193,7 @@
         if (distanceSelect) {
             distanceSelect.addEventListener('change', (e) => {
                 maxDistance = e.target.value === 'any' ? null : parseInt(e.target.value);
-                filterSelection(activeFilter);
+                await filterSelection(activeFilter);
             });
         }
         const openNowToggle = document.getElementById('open-now-toggle');
