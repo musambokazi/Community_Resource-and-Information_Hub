@@ -232,6 +232,15 @@
         icon.classList.toggle('text-yellow-400');
         icon.classList.toggle('fill-yellow-400');
         btn.setAttribute('aria-pressed', icon.classList.contains('text-yellow-400'));
+        // Find the resource
+        const resource = allResults.find(r => r.place_id === place_id || r.title === place_id);
+        if(resource) {
+            await fetch('/api/bookmarks', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({ token: userToken, place_id: place_id || resource.title, resource: resource })
+            });
+        }
     }
 
     function filterSelection(category) {
