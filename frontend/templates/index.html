@@ -228,11 +228,8 @@
             btn.classList.toggle('text-zinc-400', !isActive);
         });
 
-        renderCards(
-            category === 'all'
-                ? allResults
-                : allResults.filter(r => r.category === category)
-        );
+        let filtered = category === 'all' ? allResults : allResults.filter(r => r.category === category);
+        renderCards(filtered);
     }
 
     async function findNearby() {
