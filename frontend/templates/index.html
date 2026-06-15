@@ -218,6 +218,18 @@
 
         const statusColor = resource.is_open ? 'bg-green-500' : 'bg-red-500';
         const statusText  = resource.is_open ? 'Open Now' : 'Closed';
+        
+        let distanceBadge = '';
+        if (userOrigin && resource.lat && resource.lon) {
+            const dist = calculateDistance(userOrigin.lat, userOrigin.lon, parseFloat(resource.lat), parseFloat(resource.lon));
+            if (dist !== null) {
+                distanceBadge = `
+                <div class="absolute top-3 left-3 z-10 distance-badge" aria-label="${dist.toFixed(1)} km away">
+                    <i class="ti ti-route" aria-hidden="true"></i>
+                    ${dist.toFixed(1)} km
+                </div>`;
+            }
+        }
 
         return `
         <article class="glass-card rounded-3xl p-5 flex flex-col h-full spring-hover cursor-pointer"
@@ -226,6 +238,7 @@
                  aria-label="${escHtml(resource.title)}">
             <div class="relative w-full h-48 rounded-2xl overflow-hidden mb-4 shrink-0">
                 ${imgContent}
+                ${distanceBadge}
                 <button class="absolute top-3 right-3 p-2 bg-black/40 backdrop-blur-md rounded-full text-zinc-400 hover:text-yellow-400 transition-colors z-10"
                         onclick="event.stopPropagation(); toggleFavorite(this)"
                         aria-label="Save ${escHtml(resource.title)} to favourites"
