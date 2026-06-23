@@ -3,7 +3,7 @@ import requests
 from datetime import datetime, timedelta
 from flask import Blueprint, request, jsonify, current_app
 from app.extensions import db, limiter
-from app.models import CachedResult
+from app.models import CachedResult, Bookmark
 
 api = Blueprint('api', __name__, url_prefix='/api')
 
@@ -22,8 +22,8 @@ def _get_cached(query=None, lat=None, lon=None):
         res = (
             db.session.query(CachedResult)
             .filter(
-                db.func.round(CachedResult.lat, 3) == round(float(lat), 3),
-                db.func.round(CachedResult.lon, 3) == round(float(lon), 3),
+                db.func.round(db.cast(CachedResult.lat, db.Numeric), 3) == round(float(lat), 3),
+                db.func.round(db.cast(CachedResult.lon, db.Numeric), 3) == round(float(lon), 3),
                 CachedResult.query == None,
                 CachedResult.timestamp > threshold,
             )
@@ -132,6 +132,53 @@ def api_search():
 
     _save_cache(results, query=query)
     return jsonify({"success": True, "data": results, "cached": False})
+
+
+@api.route('/bookmarks', methods=['GET', 'POST'])
+@limiter.limit("30 per minute")
+def api_bookmarks():
+    if request.method == 'POST':
+        data = request.get_json() or {}
+        token = data.get('token')
+        place_id = data.get('place_id')
+        resource = data.get('resource')
+
+        if not token or not place_id:
+            return jsonify({"success": False, "error": "Token and place_id are required."}), 400
+
+        # Check if already bookmarked
+        existing = Bookmark.query.filter_by(user_token=token, place_id=place_id).first()
+        if existing:
+            # Toggle off: delete
+            db.session.delete(existing)
+            db.session.commit()
+            return jsonify({"success": True, "bookmarked": False})
+        else:
+            # Toggle on: add
+            if not resource:
+                return jsonify({"success": False, "error": "Resource details required to bookmark."}), 400
+            new_bookmark = Bookmark(
+                user_token=token,
+                place_id=place_id,
+                resource_json=json.dumps(resource)
+            )
+            db.session.add(new_bookmark)
+            db.session.commit()
+            return jsonify({"success": True, "bookmarked": True})
+
+    else: # GET method
+        token = request.args.get('token')
+        if not token:
+            return jsonify({"success": False, "error": "Token parameter is required."}), 400
+
+        bookmarks = Bookmark.query.filter_by(user_token=token).all()
+        data = []
+        for b in bookmarks:
+            try:
+                data.append(json.loads(b.resource_json))
+            except Exception:
+                continue
+        return jsonify({"success": True, "data": data})
 
 
 @api.route('/health')

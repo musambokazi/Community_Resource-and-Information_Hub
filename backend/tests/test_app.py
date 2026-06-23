@@ -146,3 +146,65 @@ def test_sitemap_xml(client):
     assert response.status_code == 200
     assert 'application/xml' in response.content_type
     assert b'<urlset' in response.data
+
+
+def test_signup_success(client):
+    """Signup works with valid credentials (and no DB constraint violations on User)."""
+    response = client.post('/signup', data={
+        'username': 'newuser123',
+        'password': 'validpassword123'
+    })
+    # Should redirect to home page
+    assert response.status_code == 302
+    assert response.headers['Location'] == '/'
+
+
+def test_bookmarks_flow(client):
+    """Test creating, fetching, and deleting bookmarks via API."""
+    # 1. Get empty bookmarks list
+    response = client.get('/api/bookmarks?token=test-token-456')
+    assert response.status_code == 200
+    data = response.get_json()
+    assert data['success'] is True
+    assert data['data'] == []
+
+    # 2. Add a bookmark
+    bookmark_data = {
+        'token': 'test-token-456',
+        'place_id': 'mock-place-789',
+        'resource': {
+            'title': 'Mock Clinic',
+            'category': 'hospital',
+            'desc': 'A mock clinic description',
+            'lat': -26.2500,
+            'lon': 28.4333,
+            'is_open': True,
+            'place_id': 'mock-place-789'
+        }
+    }
+    response = client.post('/api/bookmarks', json=bookmark_data)
+    assert response.status_code == 200
+    assert response.get_json()['success'] is True
+    assert response.get_json()['bookmarked'] is True
+
+    # 3. Get bookmarks list (should contain 1 bookmark)
+    response = client.get('/api/bookmarks?token=test-token-456')
+    assert response.status_code == 200
+    data = response.get_json()
+    assert data['success'] is True
+    assert len(data['data']) == 1
+    assert data['data'][0]['title'] == 'Mock Clinic'
+
+    # 4. Remove a bookmark (toggle off)
+    response = client.post('/api/bookmarks', json={
+        'token': 'test-token-456',
+        'place_id': 'mock-place-789'
+    })
+    assert response.status_code == 200
+    assert response.get_json()['success'] is True
+    assert response.get_json()['bookmarked'] is False
+
+    # 5. Get bookmarks list (should be empty again)
+    response = client.get('/api/bookmarks?token=test-token-456')
+    assert response.status_code == 200
+    assert response.get_json()['data'] == []

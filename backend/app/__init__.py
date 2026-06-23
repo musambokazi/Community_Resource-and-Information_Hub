@@ -99,4 +99,6 @@ def create_app(config_class=None):
     app.register_blueprint(api_blueprint)
     app.register_blueprint(pages_blueprint)
 
+    csrf.exempt(api_blueprint)
+
     return app

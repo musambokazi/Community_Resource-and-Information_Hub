@@ -149,8 +149,8 @@
 {% endblock %}
 
 {% block extra_scripts %}
-{% if google_maps_api_key %}
-<script src="https://maps.googleapis.com/maps/api/js?key={{ google_maps_api_key }}&libraries=places&callback=initAutocomplete" async defer></script>
+{% if config.GOOGLE_MAPS_API_KEY %}
+<script src="https://maps.googleapis.com/maps/api/js?key={{ config.GOOGLE_MAPS_API_KEY }}&libraries=places&callback=initAutocomplete" async defer></script>
 {% endif %}
 <script>
     // Phase 3 Filtering State
@@ -162,6 +162,19 @@
     let autocomplete;
     let userToken = localStorage.getItem('userToken');
     if (!userToken) { userToken = crypto.randomUUID(); localStorage.setItem('userToken', userToken); }
+    let bookmarkedIds = new Set();
+
+    async function loadBookmarks() {
+        try {
+            const res = await fetch(`/api/bookmarks?token=${userToken}`);
+            const data = await res.json();
+            if (data.success) {
+                bookmarkedIds = new Set(data.data.map(r => r.place_id || r.title));
+            }
+        } catch (err) {
+            console.error("Error loading bookmarks:", err);
+        }
+    }
 
     function initAutocomplete() {
         const input = document.getElementById('search-input');
@@ -188,21 +201,26 @@
     }
 
     // Calculate distance between two lat/lon points in km using Haversine formula
-    document.addEventListener('DOMContentLoaded', () => {
+    document.addEventListener('DOMContentLoaded', async () => {
         const distanceSelect = document.getElementById('distance-select');
         if (distanceSelect) {
-            distanceSelect.addEventListener('change', (e) => {
+            distanceSelect.addEventListener('change', async (e) => {
                 maxDistance = e.target.value === 'any' ? null : parseInt(e.target.value);
                 await filterSelection(activeFilter);
             });
         }
         const openNowToggle = document.getElementById('open-now-toggle');
         if (openNowToggle) {
-            openNowToggle.addEventListener('change', (e) => {
+            openNowToggle.addEventListener('change', async (e) => {
                 openNowOnly = e.target.checked;
-                filterSelection(activeFilter);
+                await filterSelection(activeFilter);
             });
         }
+
+        // Fetch favorites and load default nearby services on startup
+        await loadBookmarks();
+        showLoading();
+        await fetchAndRender(`/api/nearby?lat=-26.2500&lon=28.4333`);
     });
 
     document.addEventListener('DOMContentLoaded', () => {
@@ -231,16 +249,30 @@
 
     async function toggleFavorite(btn, place_id) {
         const icon = btn.querySelector('i');
-        icon.classList.toggle('text-yellow-400');
-        icon.classList.toggle('fill-yellow-400');
-        btn.setAttribute('aria-pressed', icon.classList.contains('text-yellow-400'));
-        // Find the resource
+        const isAdding = !icon.classList.contains('text-yellow-400');
+        
+        icon.classList.toggle('text-yellow-400', isAdding);
+        icon.classList.toggle('fill-yellow-400', isAdding);
+        btn.setAttribute('aria-pressed', isAdding ? 'true' : 'false');
+        
+        if (isAdding) {
+            bookmarkedIds.add(place_id);
+        } else {
+            bookmarkedIds.delete(place_id);
+        }
+        
         const resource = allResults.find(r => r.place_id === place_id || r.title === place_id);
-        if(resource) {
+        if (resource) {
             await fetch('/api/bookmarks', {
                 method: 'POST',
                 headers: {'Content-Type': 'application/json'},
-                body: JSON.stringify({ token: userToken, place_id: place_id || resource.title, resource: resource })
+                body: JSON.stringify({ token: userToken, place_id: place_id, resource: resource })
+            });
+        } else if (!isAdding) {
+            await fetch('/api/bookmarks', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({ token: userToken, place_id: place_id })
             });
         }
     }
@@ -308,7 +340,7 @@
             hideLoading();
             if (data.success && data.data) {
                 allResults = data.data;
-                filterSelection(activeFilter);
+                await filterSelection(activeFilter);
             } else {
                 showError(data.error || "Something went wrong. Please try again.");
             }
@@ -343,6 +375,10 @@
             }
         }
 
+        const isFav = bookmarkedIds.has(resource.place_id || resource.title);
+        const favIconClass = isFav ? 'text-yellow-400 fill-yellow-400' : 'text-zinc-400';
+        const ariaPressed = isFav ? 'true' : 'false';
+
         return `
         <article class="glass-card rounded-3xl p-5 flex flex-col h-full spring-hover cursor-pointer"
                  style="animation: fadeInUp 0.6s cubic-bezier(0.175,0.885,0.32,1.275) ${delay}s both;"
@@ -352,10 +388,10 @@
                 ${imgContent}
                 ${distanceBadge}
                 <button class="absolute top-3 right-3 p-2 bg-black/40 backdrop-blur-md rounded-full text-zinc-400 hover:text-yellow-400 transition-colors z-10"
-                        onclick="event.stopPropagation(); toggleFavorite(this)"
+                        onclick="event.stopPropagation(); toggleFavorite(this, '${escHtml(resource.place_id || resource.title)}')"
                         aria-label="Save ${escHtml(resource.title)} to favourites"
-                        aria-pressed="false">
-                    <i class="ti ti-star" aria-hidden="true"></i>
+                        aria-pressed="${ariaPressed}">
+                    <i class="ti ti-star ${favIconClass}" aria-hidden="true"></i>
                 </button>
             </div>
             <h2 class="text-xl font-semibold tracking-tight mb-2 line-clamp-2">${escHtml(resource.title)}</h2>

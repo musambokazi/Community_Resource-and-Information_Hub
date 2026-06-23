@@ -1,5 +1,7 @@
 import os
+from dotenv import load_dotenv
 
+load_dotenv()
 
 class Config:
     # ── Security ──────────────────────────────────────────────────────────────
@@ -16,7 +18,7 @@ class Config:
 
     # ── Database ──────────────────────────────────────────────────────────────
     SQLALCHEMY_DATABASE_URI = os.environ.get(
-        "DATABASE_URL", "sqlite:///community.db"
+        "DATABASE_URL", "postgresql://community_hub_user:password123@localhost:5432/community_hub"
     )
     SQLALCHEMY_TRACK_MODIFICATIONS = False
 
