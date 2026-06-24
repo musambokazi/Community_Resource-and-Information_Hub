@@ -14,7 +14,7 @@ _STATIC     = os.path.join(_FRONTEND, 'static')
 
 def create_app(config_class=None):
     if config_class is None:
-        from config import Config
+        from ..config import Config
         config_class = Config
 
     app = Flask(
@@ -29,7 +29,7 @@ def create_app(config_class=None):
     app.wsgi_app = ProxyFix(app.wsgi_app, x_for=1, x_proto=1, x_host=1)
 
     # ── Extensions ────────────────────────────────────────────────────────────
-    from app.extensions import db, limiter, talisman, csrf, migrate
+    from .extensions import db, limiter, talisman, csrf, migrate
     db.init_app(app)
     migrate.init_app(app, db)
     limiter.init_app(app)
@@ -81,7 +81,7 @@ def create_app(config_class=None):
     @app.context_processor
     def inject_globals():
         from flask import session
-        from app.models import User
+        from .models import User
         user = None
         if 'user_id' in session:
             user = User.query.get(session['user_id'])
@@ -91,9 +91,9 @@ def create_app(config_class=None):
         }
 
     # ── Blueprints ────────────────────────────────────────────────────────────
-    from app.routes.auth import auth as auth_blueprint
-    from app.routes.api import api as api_blueprint
-    from app.routes.pages import pages as pages_blueprint
+    from .routes.auth import auth as auth_blueprint
+    from .routes.api import api as api_blueprint
+    from .routes.pages import pages as pages_blueprint
 
     app.register_blueprint(auth_blueprint)
     app.register_blueprint(api_blueprint)

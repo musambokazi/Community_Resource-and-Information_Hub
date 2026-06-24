@@ -18,9 +18,11 @@ class Config:
 
     # ── Database ──────────────────────────────────────────────────────────────
     SQLALCHEMY_DATABASE_URI = os.environ.get(
-        "DATABASE_URL", "postgresql://community_hub_user:password123@localhost:5432/community_hub"
+        "DATABASE_URL",
+        "postgresql://community_hub_user:password123@localhost:5432/community_hub"
     )
     SQLALCHEMY_TRACK_MODIFICATIONS = False
+    SQLALCHEMY_ENGINE_OPTIONS = {"pool_pre_ping": True}
 
     # ── External APIs ─────────────────────────────────────────────────────────
     GOOGLE_MAPS_API_KEY = os.environ.get("GOOGLE_MAPS_API_KEY")
